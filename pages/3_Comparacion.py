@@ -1,74 +1,83 @@
-"""Página de comparación: contrasta cruces y evidencia el error del Excel."""
+"""Comparación entre cruces: beneficio actual vs proyecto completo."""
 import pandas as pd
 import streamlit as st
 
 import datos
-from motor_sim import Simulador
+from modelo_cruces import (
+    calcular_beneficio,
+    VST_URBANO_VIAJE_2026, DIAS_LABORALES_AÑO, OCUPACION_VEH_DEFAULT,
+)
 
 st.set_page_config(page_title='Comparación', page_icon='📊', layout='wide')
-st.title('Comparación de cruces')
+st.title('Comparación de cruces — beneficio del proyecto')
 
 con = datos.conectar()
-cruces = datos.cruces_simulables(con)
-versiones = {r['nombre']: r['version_prog_id'] for r in datos.listar_versiones(con)}
+cat = datos.catalogo_simulable(con)
 campanias = {r['nombre']: r['campania_id'] for r in datos.listar_campanias(con)}
 
 with st.sidebar:
     st.header('Configuración')
-    sel = st.multiselect('Cruces a comparar', cruces, default=cruces)
-    version = st.selectbox('Programación semafórica', list(versiones))
+    sel = st.multiselect('Cruces', [c.cruce for c in cat],
+                         default=[c.cruce for c in cat])
     campania = st.selectbox('Campaña de aforos', list(campanias))
+    tipo_dia = st.radio('Tipo de día', ['Laboral', 'Sabado', 'Domingo/Festivo'])
     k_dem = st.slider('Factor de demanda k_dem', 0.5, 1.5, 1.1, 0.05)
+    h_ini, h_fin = st.select_slider(
+        'Ventana horaria', options=list(range(0, 25)), value=(6, 24),
+        format_func=lambda x: f'{x:02d}:00')
+    ocup = st.slider('Ocupación (pax/veh)', 1.0, 3.0,
+                     OCUPACION_VEH_DEFAULT, 0.1)
     correr = st.button('Comparar', type='primary', use_container_width=True)
 
 if not correr or not sel:
-    st.info('Seleccione cruces y pulse «Comparar».')
-    con.close()
-    st.stop()
-
-
-@st.cache_data(show_spinner=False)
-def correr(cruce, vp, cm, kd, modo):
-    inp = datos.construir_inputs(con, cruce, version_prog_id=vp,
-                                 campania_id=cm, k_dem=kd)
-    r = Simulador(inp).run(mode=modo)
-    return dict(espera_base=r.espera_vh, espera_pre=r.espera_pre_vh,
-                reduccion_vh=r.reduccion_vh, reduccion_pct=r.reduccion_pct,
-                demora_base=r.demora_prom, cola_final=r.cola_final)
-
+    st.info('Seleccione cruces y pulse «Comparar». Cada cruce se evalúa '
+            'comparando la operación actual contra el proyecto completo '
+            '(pre-vaciado + reconfiguración donde aplique).')
+    con.close(); st.stop()
 
 filas = []
 for cruce in sel:
-    cor = correr(cruce, versiones[version], campanias[campania], k_dem,
-                 'corrected')
-    fai = correr(cruce, versiones[version], campanias[campania], k_dem,
-                 'faithful')
+    p = datos.simular_proyecto(
+        con, cruce, campania_id=campanias[campania], k_dem=k_dem,
+        hora_inicio_s=h_ini * 3600, hora_fin_s=h_fin * 3600,
+        tipo_dia=tipo_dia)
+    ben = calcular_beneficio(p['ahorro_total'], ocupacion=ocup)
     filas.append({
         'Cruce': cruce,
-        'Espera base (veh·h)': round(cor['espera_base'], 1),
-        'Espera pre (veh·h)': round(cor['espera_pre'], 1),
-        'Reducción corregida (%)': round(cor['reduccion_pct'] * 100, 1),
-        'Reducción Excel (%)': round(fai['reduccion_pct'] * 100, 1),
-        'Cola final (veh)': round(cor['cola_final'], 1),
+        'Reconfig.': 'Sí' if p['tiene_reconfig'] else 'No',
+        'Actual (veh·h)': round(p['actual'], 1),
+        'Proyecto (veh·h)': round(p['proyecto'], 1),
+        'Ahorro diario (veh·h)': round(p['ahorro_total'], 1),
+        'Aporte pre-vaciado (veh·h)': round(p['aporte_prevaciado'], 1),
+        'Aporte reconfig (veh·h)': round(p['aporte_reconfig'], 1),
+        'Reducción (%)': round(p['reduccion_pct'] * 100, 1),
+        'Ahorro anual (veh·h)': round(ben.ahorro_anual_veh_h, 0),
+        'Beneficio anual (CLP)': round(ben.beneficio_anual_clp, 0),
     })
 df = pd.DataFrame(filas)
 
-st.subheader('Resultados por cruce (modo corregido)')
+st.subheader('Tabla de resultados')
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-st.subheader('Espera: base vs pre-vaciado')
-st.bar_chart(df.set_index('Cruce')[['Espera base (veh·h)',
-                                    'Espera pre (veh·h)']])
+st.subheader('Beneficio social anual por cruce')
+st.caption(f'VST urbano viaje MDS 2026 = {VST_URBANO_VIAJE_2026:,} CLP/h-pax · '
+           f'{DIAS_LABORALES_AÑO} días · {ocup:g} pax/veh.')
+st.bar_chart(df.set_index('Cruce')[['Beneficio anual (CLP)']])
 
-st.subheader('El error de ventana del Excel')
-st.caption('La columna «Excel» suma la espera pre-vaciado solo sobre las '
-           'primeras 3 h y la base sobre 15 h, inflando la reducción. '
-           'La columna «corregida» usa la misma ventana para ambos.')
-st.bar_chart(df.set_index('Cruce')[['Reducción corregida (%)',
-                                    'Reducción Excel (%)']])
+st.subheader('Descomposición del ahorro diario')
+st.caption('Cuánto del ahorro viene del pre-vaciado solo y cuánto suma la '
+           'reconfiguración. Para cruces sin reconfig, el aporte reconfig es 0.')
+st.bar_chart(df.set_index('Cruce')[['Aporte pre-vaciado (veh·h)',
+                                    'Aporte reconfig (veh·h)']])
 
-st.download_button(
-    'Descargar comparación (CSV)', df.to_csv(index=False).encode('utf-8'),
-    file_name='comparacion_cruces.csv', mime='text/csv')
+st.subheader('Espera vehicular: actual vs proyecto')
+st.bar_chart(df.set_index('Cruce')[['Actual (veh·h)', 'Proyecto (veh·h)']])
 
+total = df['Beneficio anual (CLP)'].sum()
+st.metric('Beneficio social TOTAL del conjunto', f'CLP {total:,.0f}',
+          f'≈ {total/39727.96:,.0f} UF/año')
+
+st.download_button('Descargar comparación (CSV)',
+                   df.to_csv(index=False).encode('utf-8'),
+                   file_name='comparacion_proyecto.csv', mime='text/csv')
 con.close()
