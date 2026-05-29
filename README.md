@@ -27,28 +27,54 @@ total es la integral de la cola en el tiempo.
 ```
 modelo-cruces-l2/
 ├── app.py                 Página principal Streamlit
-├── motor_sim.py           Motor de simulación (validado)
+├── motor_sim.py           Shim de compatibilidad -> modelo_cruces.motor
 ├── datos.py               Capa de acceso a las bases de datos
+├── modelo_cruces/         Paquete del dominio
+│   ├── motor.py           Motor de simulación (validado)
+│   ├── modelos.py         Dataclasses (Variante, CatalogoCruce, ...)
+│   ├── config.py          Mapeo con el Excel (sin posiciones hardcodeadas)
+│   ├── catalogo.py        Variantes por cruce (base / reconfiguración)
+│   ├── validadores.py     Reglas de integridad
+│   └── importador.py      Importadores modulares
 ├── pages/
-│   ├── 1_Simulacion.py    Corre el modelo para un cruce
+│   ├── 1_Simulacion.py    Corre el modelo según la variante del cruce
 │   ├── 2_Mapa.py          Mapa georreferenciado de los cruces
-│   └── 3_Comparacion.py   Compara cruces y modos de cálculo
+│   ├── 3_Comparacion.py   Compara cruces y variantes
+│   └── 4_Validacion.py    Reporte de integridad + catálogo
 ├── data/
 │   ├── schema/*.sql       DDL de las tres bases
-│   ├── infraestructura.db Estaciones, cruces, barreras, semáforos
-│   ├── demanda.db         Aforos vehiculares y eventos de barrera
-│   └── escenarios.db      Configuración y resultados de corridas
+│   ├── seeds/             Datos semilla (declaración del proyecto)
+│   └── *.db               Bases generadas (se versionan)
+├── plantillas/            Plantilla canónica de insumos (CSV)
 ├── scripts/
-│   └── migrar_xlsx.py     Genera las bases desde los .xlsx originales
-├── tests/
-│   └── test_validacion.py Verifica que el motor reproduce el Excel
-├── fuentes/               (los .xlsx originales — no se versionan)
+│   ├── migrar_xlsx.py     Importa el Excel original a las bases
+│   └── exportar_plantillas.py  Exporta las bases a la plantilla canónica
+├── tests/                 Regresión, catálogo e integridad
+├── PROPUESTA_ARQUITECTURA.md   Documento de rediseño
 ├── requirements.txt
 └── .streamlit/config.toml
 ```
 
-Las bases `.db` **se versionan** (son datos de solo lectura listos para
-usar). Los `.xlsx` originales **no** se versionan (pesan ~45 MB c/u).
+Las bases `.db` **se versionan** (datos de solo lectura listos para usar).
+Los `.xlsx` originales **no** (pesan ~45 MB c/u).
+
+### Catálogo de variantes por cruce
+
+Cada cruce declara qué modelo le corresponde, combinando dos fuentes:
+detección automática (la programación v2 difiere de la v1) y declaración
+operacional en `data/seeds/cruces_reconfiguracion.csv` (vía principal y
+código SCATS). El modelo unificado del proyecto es
+«Pre-vaciado + HCALL + Base a fase 1» — ya implementado en el motor.
+Diagonal Bio Bío suma una variante con programación v2 distinta.
+Ver `PROPUESTA_ARQUITECTURA.md`.
+
+### Beneficio social (evaluación SNI)
+
+La app calcula el beneficio social anualizado siguiendo la metodología
+del Sistema Nacional de Inversiones: `ahorro_diario × 250 días × pax/veh
+× VST`. Usa el **valor social del tiempo MDS 2026 (3.338 CLP/h-pax para
+viaje urbano en vehículo)** publicado el 31 de marzo de 2026. La ventana
+por defecto es 06:00–24:00 para cubrir todos los servicios Biotren.
 
 ---
 

@@ -10,6 +10,8 @@ import sqlite3
 from pathlib import Path
 
 from motor_sim import Inputs, Resultados
+from modelo_cruces import catalogo as _catalogo
+from modelo_cruces.modelos import Variante, CatalogoCruce
 
 DIR_DATA = Path(__file__).resolve().parent / 'data'
 DB_INFRA = DIR_DATA / 'infraestructura.db'
@@ -66,23 +68,113 @@ def listar_campanias(con) -> list[sqlite3.Row]:
 
 
 # --------------------------------------------------------------------- #
+#  catalogo de variantes por cruce  (que modelo corresponde a cada uno)
+# --------------------------------------------------------------------- #
+def catalogo(con) -> list[CatalogoCruce]:
+    """Catalogo completo: cada cruce con sus variantes aplicables."""
+    return _catalogo.construir_catalogo(con)
+
+
+def catalogo_simulable(con) -> list[CatalogoCruce]:
+    """Solo cruces simulables (con aforo y eventos de barrera)."""
+    return _catalogo.catalogo_simulable(con)
+
+
+def inputs_de_variante(con, var: Variante, **overrides) -> Inputs:
+    """Construye Inputs para una variante del catalogo.
+
+    La variante determina la version de programacion y el comportamiento
+    post-HCALL (False = base, True = reconfiguracion = salto a verde lateral).
+    """
+    params = dict(version_prog_id=var.version_prog_id,
+                  post_hcall_lateral=var.post_hcall_lateral)
+    params.update(overrides)
+    return construir_inputs(con, var.cruce, **params)
+
+
+def simular_proyecto(con, cruce: str, **opts) -> dict:
+    """Simula la operacion actual vs el proyecto completo para un cruce.
+
+    Devuelve un dict con las cuatro situaciones del modelo:
+      actual            -> base sin pre-vaciado     (variante base, espera_vh)
+      solo_prevaciado   -> base con pre-vaciado     (variante base, espera_pre_vh)
+      solo_reconfig     -> reconfig sin pre-vaciado (variante reconfig, espera_vh)
+      proyecto          -> reconfig con pre-vaciado (variante reconfig, espera_pre_vh)
+    Si el cruce NO esta declarado, solo_reconfig y proyecto coinciden con
+    solo_prevaciado (no hay reconfiguracion que aplicar).
+
+    Tambien entrega el ahorro descompuesto:
+      ahorro_total      = actual - proyecto
+      aporte_prevaciado = actual - solo_prevaciado
+      aporte_reconfig   = solo_prevaciado - proyecto
+    """
+    from modelo_cruces import Simulador
+    from modelo_cruces.catalogo import buscar, construir_catalogo
+
+    c = buscar(construir_catalogo(con), cruce)
+    if c is None or not c.simulable:
+        raise ValueError(f'Cruce no simulable: {cruce}')
+    v_base = c.variante('base')
+    v_rec  = c.variante('reconfiguracion') or v_base    # fallback
+
+    rb = Simulador(inputs_de_variante(con, v_base, **opts)).run(mode='corrected',
+                                                                keep_series=True)
+    if v_rec is v_base:
+        rr = rb                                          # no hay reconfig
+    else:
+        rr = Simulador(inputs_de_variante(con, v_rec, **opts)).run(
+            mode='corrected', keep_series=True)
+
+    actual          = rb.espera_vh
+    solo_prevaciado = rb.espera_pre_vh
+    solo_reconfig   = rr.espera_vh
+    proyecto        = rr.espera_pre_vh
+    ahorro_total      = actual - proyecto
+    aporte_prevaciado = actual - solo_prevaciado
+    aporte_reconfig   = solo_prevaciado - proyecto
+    return {
+        'cruce': cruce, 'tiene_reconfig': v_rec is not v_base,
+        'actual': actual, 'solo_prevaciado': solo_prevaciado,
+        'solo_reconfig': solo_reconfig, 'proyecto': proyecto,
+        'ahorro_total': ahorro_total, 'reduccion_pct': ahorro_total / actual if actual > 0 else 0,
+        'aporte_prevaciado': aporte_prevaciado, 'aporte_reconfig': aporte_reconfig,
+        'demanda': rb.demanda, 'cola_final_actual': rb.cola_final,
+        'serie_actual': rb.series, 'serie_proyecto': rr.series,
+    }
+
+
+# --------------------------------------------------------------------- #
 #  construccion de Inputs para el motor
 # --------------------------------------------------------------------- #
-def construir_inputs(con, cruce: str, version_prog_id: int = 1,
+def construir_inputs(con, cruce: str, version_prog_id: int | None = None,
                      campania_id: int = 1, itinerario_id: int = 1,
                      hora_inicio_s: int = 21600, hora_fin_s: int = 75600,
                      h: float = 2.0, n_carriles: float = 2.0,
-                     buffer: int = 0, k_dem: float = 1.1) -> Inputs:
+                     buffer: int = 0, k_dem: float = 1.1,
+                     post_hcall_lateral: bool = False,
+                     tipo_dia: str = 'Laboral') -> Inputs:
     """Arma un objeto Inputs leyendo los insumos desde las bases.
 
-    El flujo en la base es CRUDO; aqui lambda = flujo_veh_h / 3600 y el
-    motor aplica k_dem. Para reproducir el Excel original usar k_dem=1.1.
+    Si `version_prog_id` es None, se resuelve desde `modelo_operacional_cruce`
+    (cada cruce esta asignado a la version que le corresponde: v1 NOREPROG
+    o v2 RECONFIG). `tipo_dia` selecciona la malla horaria (Laboral por
+    defecto, Sabado o Domingo/Festivo).
+
+    El flujo en la base es CRUDO; el motor aplica k_dem. Para reproducir
+    el Excel original usar k_dem=1.1. `post_hcall_lateral=True` activa la
+    reconfiguracion (salto al verde lateral al terminar HCALL).
     """
     cid = con.execute('SELECT cruce_id FROM infra.cruces WHERE nombre = ?',
                        (cruce,)).fetchone()
     if cid is None:
         raise ValueError(f'Cruce no encontrado: {cruce}')
     cid = cid['cruce_id']
+
+    if version_prog_id is None:
+        row = con.execute('SELECT version_prog_id FROM '
+                          'infra.modelo_operacional_cruce WHERE cruce_id=?',
+                          (cid,)).fetchone()
+        version_prog_id = row['version_prog_id'] if row else 1
 
     prog_fases = [{
         'cross': cruce, 'plan': r['plan_id'], 'phase': r['fase_id'],
@@ -98,15 +190,17 @@ def construir_inputs(con, cruce: str, version_prog_id: int = 1,
         'fin': _hhmmss(r['hora_fin_s']),
         'plan': r['plan_id'],
     } for r in con.execute(
-        'SELECT * FROM infra.planes_horarios WHERE version_prog_id = ?',
-        (version_prog_id,))]
+        'SELECT * FROM infra.planes_horarios_cruce '
+        'WHERE version_prog_id=? AND cruce_id=? AND tipo_dia=? '
+        'ORDER BY hora_inicio_s', (version_prog_id, cid, tipo_dia))]
 
     llegadas = [{
         'cruce': cruce, 't_ini': r['t_inicio_s'], 't_fin': r['t_fin_s'],
-        'lambda': r['flujo_veh_h'] / 3600.0,        # CRUDO; k_dem lo aplica el motor
+        'lambda': r['flujo_veh_h'] / 3600.0,
     } for r in con.execute(
         'SELECT * FROM dem.llegadas_vehiculares '
-        'WHERE campania_id = ? AND cruce_id = ?', (campania_id, cid))]
+        'WHERE campania_id=? AND cruce_id=? AND tipo_dia=?',
+        (campania_id, cid, tipo_dia))]
 
     eventos = con.execute(
         'SELECT hcall_in_s, hcall_out_s FROM dem.eventos_barrera '
@@ -120,6 +214,7 @@ def construir_inputs(con, cruce: str, version_prog_id: int = 1,
         h=h, n_carriles=n_carriles, buffer=buffer, k_dem=k_dem,
         prog_fases=prog_fases, plan=plan, llegadas=llegadas,
         hcall_in=hcall_in, hcall_out=hcall_out,
+        post_hcall_lateral=post_hcall_lateral,
     )
 
 

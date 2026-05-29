@@ -42,18 +42,29 @@ c1.metric('Cruces en la base', n_cruces)
 c2.metric('Cruces simulables', n_sim)
 c3.metric('Escenarios guardados', n_esc)
 
-st.subheader('Cruces simulables')
-st.caption('Cruces que tienen aforos vehiculares y eventos de barrera cargados.')
-filas = con.execute("""
-    SELECT c.nombre AS Cruce, c.comuna AS Comuna,
-           c.num_pistas_total AS Pistas,
-           CASE c.tiene_semaforo WHEN 1 THEN 'Sí' ELSE 'No' END AS Semáforo,
-           c.sentido_afectacion AS Sentido
-    FROM   infra.cruces c
-    WHERE  c.nombre IN (%s)
-    ORDER  BY c.nombre
-""" % ','.join('?' * n_sim), datos.cruces_simulables(con)).fetchall()
-st.dataframe([dict(f) for f in filas], use_container_width=True, hide_index=True)
+st.subheader('Alcance del proyecto — cruces y su modelo')
+st.caption('Modelo operacional de cada cruce desde la tabla '
+           '`modelo_operacional_cruce`. **RECONFIG** = pre-vaciado + '
+           'reconfiguración (salto al verde lateral post-HCALL). '
+           '**NOREPROG** = solo pre-vaciado (post-HCALL → fase 1).')
+filas = []
+for c in datos.catalogo(con):
+    mod = con.execute('SELECT tipo_modelo, version_prog_id FROM '
+                      'infra.modelo_operacional_cruce WHERE cruce_id=?',
+                      (c.cruce_id,)).fetchone()
+    tipo_modelo = mod['tipo_modelo'] if mod else '—'
+    vers = f"v{mod['version_prog_id']}" if mod else '—'
+    cod = c.proyecto.codigo_proyecto if c.proyecto else None
+    via = c.proyecto.via_principal if c.proyecto else None
+    filas.append({
+        'Cruce': c.cruce, 'Comuna': c.comuna,
+        'Tipo modelo': tipo_modelo, 'Versión': vers,
+        'Código SCATS': cod or '',
+        'Vía': via or '',
+        'Variantes': len(c.variantes),
+        'Simulable': 'Sí' if c.simulable else 'No',
+    })
+st.dataframe(filas, use_container_width=True, hide_index=True)
 
 st.info('Modelo de referencia: cola determinística de Newell + preempción '
         'anticipada de cruce ferroviario. Las cifras del modelo deben '
