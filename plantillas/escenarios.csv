@@ -1,0 +1,8 @@
+escenario_id,nombre,cruce_id,version_prog_id,campania_id,itinerario_id,k_dem,modo
+1,Diagonal Bio Bio - base,4,2,1,1,1.1,corrected
+2,Diagonal Bio Bio - reconfiguracion,4,2,1,1,1.1,corrected
+3,Costa Verde - base,7,1,1,1,1.1,corrected
+4,Portal San Pedro - base,11,2,1,1,1.1,corrected
+5,Portal San Pedro - reconfiguracion,11,2,1,1,1.1,corrected
+6,Conavicop - base,12,2,1,1,1.1,corrected
+7,Conavicop - reconfiguracion,12,2,1,1,1.1,corrected

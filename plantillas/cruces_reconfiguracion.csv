@@ -1,0 +1,9 @@
+cruce_id,via_principal,codigo_proyecto,comuna_referencia,estado_carga,confianza,fuente
+2,P. A. Cerda - Los Claveles,3051,,CARGAR,Alta por coincidencia directa e ID entregado,Red PAC.xlsx
+4,Pedro Aguirre Cerda - Diag. Bio Bio,3031,,CARGAR,Alta por coincidencia directa e ID entregado,Red PAC.xlsx
+6,Ruta 160 - Michaihue,3011,,CARGAR,Alta por coincidencia directa e ID entregado,Red PAC.xlsx
+8,Ruta 160 - 1 Norte,3161,,CARGAR,Alta por ID entregado; validar denominación Calle Uno / 1 Norte,Red Ruta160.xlsx
+10,Ruta 160 - Victoria - Los Parques,3181,,CARGAR,Alta por ID entregado y referencia a Los Parques,Red Ruta160.xlsx
+11,Ruta 160 - El Rosario,3191,,CARGAR,Alta por ID entregado; validar nodo específico si aplica,Red Ruta160.xlsx
+12,Ruta 160 - Jose Donoso,3196,,CARGAR,Alta por ID entregado; nombre de cruce interno Conavicop/Conavicoop,Red Ruta160.xlsx
+14,,,,PENDIENTE_SIN_BLOQUE_PROGRAMACION,Pendiente: referencia sin ID y sin bloque en archivos adjuntos,

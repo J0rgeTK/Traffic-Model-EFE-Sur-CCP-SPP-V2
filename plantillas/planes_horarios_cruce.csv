@@ -1,0 +1,221 @@
+version_prog_id,cruce_id,tipo_dia,hora_inicio_s,hora_fin_s,plan_id,fuente
+2,2,Domingo/Festivo,0,36000,5,Red PAC.xlsx
+2,2,Domingo/Festivo,36000,53100,3,Red PAC.xlsx
+2,2,Domingo/Festivo,53100,64800,2,Red PAC.xlsx
+2,2,Domingo/Festivo,64800,75600,4,Red PAC.xlsx
+2,2,Domingo/Festivo,75600,82800,3,Red PAC.xlsx
+2,2,Domingo/Festivo,82800,86400,5,Red PAC.xlsx
+2,2,Laboral,0,21600,5,Red PAC.xlsx
+2,2,Laboral,21600,34200,1,Red PAC.xlsx
+2,2,Laboral,34200,36000,6,Red PAC.xlsx
+2,2,Laboral,36000,45000,2,Red PAC.xlsx
+2,2,Laboral,45000,61200,4,Red PAC.xlsx
+2,2,Laboral,61200,75600,4,Red PAC.xlsx
+2,2,Laboral,75600,82800,3,Red PAC.xlsx
+2,2,Laboral,82800,86400,5,Red PAC.xlsx
+2,2,Sabado,0,28800,5,Red PAC.xlsx
+2,2,Sabado,28800,45000,2,Red PAC.xlsx
+2,2,Sabado,45000,72900,4,Red PAC.xlsx
+2,2,Sabado,72900,81000,2,Red PAC.xlsx
+2,2,Sabado,81000,82800,3,Red PAC.xlsx
+2,2,Sabado,82800,86400,5,Red PAC.xlsx
+2,4,Domingo/Festivo,0,36000,5,Red PAC.xlsx
+2,4,Domingo/Festivo,36000,53100,3,Red PAC.xlsx
+2,4,Domingo/Festivo,53100,64800,2,Red PAC.xlsx
+2,4,Domingo/Festivo,64800,75600,4,Red PAC.xlsx
+2,4,Domingo/Festivo,75600,82800,3,Red PAC.xlsx
+2,4,Domingo/Festivo,82800,86400,5,Red PAC.xlsx
+2,4,Laboral,0,21600,5,Red PAC.xlsx
+2,4,Laboral,21600,34200,1,Red PAC.xlsx
+2,4,Laboral,34200,36000,6,Red PAC.xlsx
+2,4,Laboral,36000,45000,2,Red PAC.xlsx
+2,4,Laboral,45000,61200,4,Red PAC.xlsx
+2,4,Laboral,61200,75600,4,Red PAC.xlsx
+2,4,Laboral,75600,82800,3,Red PAC.xlsx
+2,4,Laboral,82800,86400,5,Red PAC.xlsx
+2,4,Sabado,0,28800,5,Red PAC.xlsx
+2,4,Sabado,28800,45000,2,Red PAC.xlsx
+2,4,Sabado,45000,72900,4,Red PAC.xlsx
+2,4,Sabado,72900,81000,2,Red PAC.xlsx
+2,4,Sabado,81000,82800,3,Red PAC.xlsx
+2,4,Sabado,82800,86400,5,Red PAC.xlsx
+2,6,Domingo/Festivo,0,36000,5,Red PAC.xlsx
+2,6,Domingo/Festivo,36000,53100,3,Red PAC.xlsx
+2,6,Domingo/Festivo,53100,64800,2,Red PAC.xlsx
+2,6,Domingo/Festivo,64800,75600,4,Red PAC.xlsx
+2,6,Domingo/Festivo,75600,82800,3,Red PAC.xlsx
+2,6,Domingo/Festivo,82800,86400,5,Red PAC.xlsx
+2,6,Laboral,0,21600,5,Red PAC.xlsx
+2,6,Laboral,21600,34200,1,Red PAC.xlsx
+2,6,Laboral,34200,36000,6,Red PAC.xlsx
+2,6,Laboral,36000,45000,2,Red PAC.xlsx
+2,6,Laboral,45000,61200,4,Red PAC.xlsx
+2,6,Laboral,61200,75600,4,Red PAC.xlsx
+2,6,Laboral,75600,82800,3,Red PAC.xlsx
+2,6,Laboral,82800,86400,5,Red PAC.xlsx
+2,6,Sabado,0,28800,5,Red PAC.xlsx
+2,6,Sabado,28800,45000,2,Red PAC.xlsx
+2,6,Sabado,45000,72900,4,Red PAC.xlsx
+2,6,Sabado,72900,81000,2,Red PAC.xlsx
+2,6,Sabado,81000,82800,3,Red PAC.xlsx
+2,6,Sabado,82800,86400,5,Red PAC.xlsx
+1,7,Domingo/Festivo,0,36000,5,Red Ruta160.xlsx
+1,7,Domingo/Festivo,36000,53100,3,Red Ruta160.xlsx
+1,7,Domingo/Festivo,53100,64800,2,Red Ruta160.xlsx
+1,7,Domingo/Festivo,64800,75600,4,Red Ruta160.xlsx
+1,7,Domingo/Festivo,75600,82800,3,Red Ruta160.xlsx
+1,7,Domingo/Festivo,82800,86400,5,Red Ruta160.xlsx
+1,7,Laboral,0,21600,5,Red Ruta160.xlsx
+1,7,Laboral,21600,34200,1,Red Ruta160.xlsx
+1,7,Laboral,34200,36000,6,Red Ruta160.xlsx
+1,7,Laboral,36000,45000,2,Red Ruta160.xlsx
+1,7,Laboral,45000,61200,4,Red Ruta160.xlsx
+1,7,Laboral,61200,75600,4,Red Ruta160.xlsx
+1,7,Laboral,75600,82800,3,Red Ruta160.xlsx
+1,7,Laboral,82800,86400,5,Red Ruta160.xlsx
+1,7,Sabado,0,28800,5,Red Ruta160.xlsx
+1,7,Sabado,28800,45000,2,Red Ruta160.xlsx
+1,7,Sabado,45000,72900,4,Red Ruta160.xlsx
+1,7,Sabado,72900,81000,2,Red Ruta160.xlsx
+1,7,Sabado,81000,82800,3,Red Ruta160.xlsx
+1,7,Sabado,82800,86400,5,Red Ruta160.xlsx
+2,8,Domingo/Festivo,0,36000,5,Red Ruta160.xlsx
+2,8,Domingo/Festivo,36000,53100,3,Red Ruta160.xlsx
+2,8,Domingo/Festivo,53100,64800,2,Red Ruta160.xlsx
+2,8,Domingo/Festivo,64800,75600,4,Red Ruta160.xlsx
+2,8,Domingo/Festivo,75600,82800,3,Red Ruta160.xlsx
+2,8,Domingo/Festivo,82800,86400,5,Red Ruta160.xlsx
+2,8,Laboral,0,21600,5,Red Ruta160.xlsx
+2,8,Laboral,21600,34200,1,Red Ruta160.xlsx
+2,8,Laboral,34200,36000,6,Red Ruta160.xlsx
+2,8,Laboral,36000,45000,2,Red Ruta160.xlsx
+2,8,Laboral,45000,61200,4,Red Ruta160.xlsx
+2,8,Laboral,61200,75600,4,Red Ruta160.xlsx
+2,8,Laboral,75600,82800,3,Red Ruta160.xlsx
+2,8,Laboral,82800,86400,5,Red Ruta160.xlsx
+2,8,Sabado,0,28800,5,Red Ruta160.xlsx
+2,8,Sabado,28800,45000,2,Red Ruta160.xlsx
+2,8,Sabado,45000,72900,4,Red Ruta160.xlsx
+2,8,Sabado,72900,81000,2,Red Ruta160.xlsx
+2,8,Sabado,81000,82800,3,Red Ruta160.xlsx
+2,8,Sabado,82800,86400,5,Red Ruta160.xlsx
+2,10,Domingo/Festivo,0,36000,5,Red Ruta160.xlsx
+2,10,Domingo/Festivo,36000,53100,3,Red Ruta160.xlsx
+2,10,Domingo/Festivo,53100,64800,2,Red Ruta160.xlsx
+2,10,Domingo/Festivo,64800,75600,4,Red Ruta160.xlsx
+2,10,Domingo/Festivo,75600,82800,3,Red Ruta160.xlsx
+2,10,Domingo/Festivo,82800,86400,5,Red Ruta160.xlsx
+2,10,Laboral,0,21600,5,Red Ruta160.xlsx
+2,10,Laboral,21600,34200,1,Red Ruta160.xlsx
+2,10,Laboral,34200,36000,6,Red Ruta160.xlsx
+2,10,Laboral,36000,45000,2,Red Ruta160.xlsx
+2,10,Laboral,45000,61200,4,Red Ruta160.xlsx
+2,10,Laboral,61200,75600,4,Red Ruta160.xlsx
+2,10,Laboral,75600,82800,3,Red Ruta160.xlsx
+2,10,Laboral,82800,86400,5,Red Ruta160.xlsx
+2,10,Sabado,0,28800,5,Red Ruta160.xlsx
+2,10,Sabado,28800,45000,2,Red Ruta160.xlsx
+2,10,Sabado,45000,72900,4,Red Ruta160.xlsx
+2,10,Sabado,72900,81000,2,Red Ruta160.xlsx
+2,10,Sabado,81000,82800,3,Red Ruta160.xlsx
+2,10,Sabado,82800,86400,5,Red Ruta160.xlsx
+2,11,Domingo/Festivo,0,36000,5,Red Ruta160.xlsx
+2,11,Domingo/Festivo,36000,53100,3,Red Ruta160.xlsx
+2,11,Domingo/Festivo,53100,64800,2,Red Ruta160.xlsx
+2,11,Domingo/Festivo,64800,75600,4,Red Ruta160.xlsx
+2,11,Domingo/Festivo,75600,82800,3,Red Ruta160.xlsx
+2,11,Domingo/Festivo,82800,86400,5,Red Ruta160.xlsx
+2,11,Laboral,0,21600,5,Red Ruta160.xlsx
+2,11,Laboral,21600,34200,1,Red Ruta160.xlsx
+2,11,Laboral,34200,36000,6,Red Ruta160.xlsx
+2,11,Laboral,36000,45000,2,Red Ruta160.xlsx
+2,11,Laboral,45000,61200,4,Red Ruta160.xlsx
+2,11,Laboral,61200,75600,4,Red Ruta160.xlsx
+2,11,Laboral,75600,82800,3,Red Ruta160.xlsx
+2,11,Laboral,82800,86400,5,Red Ruta160.xlsx
+2,11,Sabado,0,28800,5,Red Ruta160.xlsx
+2,11,Sabado,28800,45000,2,Red Ruta160.xlsx
+2,11,Sabado,45000,72900,4,Red Ruta160.xlsx
+2,11,Sabado,72900,81000,2,Red Ruta160.xlsx
+2,11,Sabado,81000,82800,3,Red Ruta160.xlsx
+2,11,Sabado,82800,86400,5,Red Ruta160.xlsx
+2,12,Domingo/Festivo,0,36000,5,Red Ruta160.xlsx
+2,12,Domingo/Festivo,36000,53100,3,Red Ruta160.xlsx
+2,12,Domingo/Festivo,53100,64800,2,Red Ruta160.xlsx
+2,12,Domingo/Festivo,64800,75600,4,Red Ruta160.xlsx
+2,12,Domingo/Festivo,75600,82800,3,Red Ruta160.xlsx
+2,12,Domingo/Festivo,82800,86400,5,Red Ruta160.xlsx
+2,12,Laboral,0,21600,5,Red Ruta160.xlsx
+2,12,Laboral,21600,34200,1,Red Ruta160.xlsx
+2,12,Laboral,34200,36000,6,Red Ruta160.xlsx
+2,12,Laboral,36000,45000,2,Red Ruta160.xlsx
+2,12,Laboral,45000,61200,4,Red Ruta160.xlsx
+2,12,Laboral,61200,75600,4,Red Ruta160.xlsx
+2,12,Laboral,75600,82800,3,Red Ruta160.xlsx
+2,12,Laboral,82800,86400,5,Red Ruta160.xlsx
+2,12,Sabado,0,28800,5,Red Ruta160.xlsx
+2,12,Sabado,28800,45000,2,Red Ruta160.xlsx
+2,12,Sabado,45000,72900,4,Red Ruta160.xlsx
+2,12,Sabado,72900,81000,2,Red Ruta160.xlsx
+2,12,Sabado,81000,82800,3,Red Ruta160.xlsx
+2,12,Sabado,82800,86400,5,Red Ruta160.xlsx
+1,17,Domingo/Festivo,0,36000,7,eje Montt y Los Laboreos.xlsx
+1,17,Domingo/Festivo,36000,72000,6,eje Montt y Los Laboreos.xlsx
+1,17,Domingo/Festivo,72000,86400,7,eje Montt y Los Laboreos.xlsx
+1,17,Laboral,25200,27000,6,eje Montt y Los Laboreos.xlsx
+1,17,Laboral,27000,36000,1,eje Montt y Los Laboreos.xlsx
+1,17,Laboral,36000,54900,2,eje Montt y Los Laboreos.xlsx
+1,17,Laboral,54900,72000,3,eje Montt y Los Laboreos.xlsx
+1,17,Laboral,72000,82800,6,eje Montt y Los Laboreos.xlsx
+1,17,Laboral,82800,86400,7,eje Montt y Los Laboreos.xlsx
+1,17,Sabado,0,25200,7,eje Montt y Los Laboreos.xlsx
+1,17,Sabado,25200,30600,6,eje Montt y Los Laboreos.xlsx
+1,17,Sabado,30600,34200,4,eje Montt y Los Laboreos.xlsx
+1,17,Sabado,34200,52200,5,eje Montt y Los Laboreos.xlsx
+1,17,Sabado,52200,74700,4,eje Montt y Los Laboreos.xlsx
+1,17,Sabado,74700,86400,6,eje Montt y Los Laboreos.xlsx
+1,18,Domingo/Festivo,0,36000,7,eje Montt y Los Laboreos.xlsx
+1,18,Domingo/Festivo,36000,72000,6,eje Montt y Los Laboreos.xlsx
+1,18,Domingo/Festivo,72000,86400,7,eje Montt y Los Laboreos.xlsx
+1,18,Laboral,25200,27000,6,eje Montt y Los Laboreos.xlsx
+1,18,Laboral,27000,36000,1,eje Montt y Los Laboreos.xlsx
+1,18,Laboral,36000,54900,2,eje Montt y Los Laboreos.xlsx
+1,18,Laboral,54900,72000,3,eje Montt y Los Laboreos.xlsx
+1,18,Laboral,72000,82800,6,eje Montt y Los Laboreos.xlsx
+1,18,Laboral,82800,86400,7,eje Montt y Los Laboreos.xlsx
+1,18,Sabado,0,25200,7,eje Montt y Los Laboreos.xlsx
+1,18,Sabado,25200,30600,6,eje Montt y Los Laboreos.xlsx
+1,18,Sabado,30600,34200,4,eje Montt y Los Laboreos.xlsx
+1,18,Sabado,34200,52200,5,eje Montt y Los Laboreos.xlsx
+1,18,Sabado,52200,74700,4,eje Montt y Los Laboreos.xlsx
+1,18,Sabado,74700,86400,6,eje Montt y Los Laboreos.xlsx
+1,20,Domingo/Festivo,0,36000,7,eje Montt y Los Laboreos.xlsx
+1,20,Domingo/Festivo,36000,72000,6,eje Montt y Los Laboreos.xlsx
+1,20,Domingo/Festivo,72000,86400,7,eje Montt y Los Laboreos.xlsx
+1,20,Laboral,25200,27000,6,eje Montt y Los Laboreos.xlsx
+1,20,Laboral,27000,36000,1,eje Montt y Los Laboreos.xlsx
+1,20,Laboral,36000,54900,2,eje Montt y Los Laboreos.xlsx
+1,20,Laboral,54900,72000,3,eje Montt y Los Laboreos.xlsx
+1,20,Laboral,72000,82800,6,eje Montt y Los Laboreos.xlsx
+1,20,Laboral,82800,86400,7,eje Montt y Los Laboreos.xlsx
+1,20,Sabado,0,25200,7,eje Montt y Los Laboreos.xlsx
+1,20,Sabado,25200,30600,6,eje Montt y Los Laboreos.xlsx
+1,20,Sabado,30600,34200,4,eje Montt y Los Laboreos.xlsx
+1,20,Sabado,34200,52200,5,eje Montt y Los Laboreos.xlsx
+1,20,Sabado,52200,74700,4,eje Montt y Los Laboreos.xlsx
+1,20,Sabado,74700,86400,6,eje Montt y Los Laboreos.xlsx
+1,21,Domingo/Festivo,0,36000,7,eje Montt y Los Laboreos.xlsx
+1,21,Domingo/Festivo,36000,72000,6,eje Montt y Los Laboreos.xlsx
+1,21,Domingo/Festivo,72000,86400,7,eje Montt y Los Laboreos.xlsx
+1,21,Laboral,25200,27000,6,eje Montt y Los Laboreos.xlsx
+1,21,Laboral,27000,36000,1,eje Montt y Los Laboreos.xlsx
+1,21,Laboral,36000,54900,2,eje Montt y Los Laboreos.xlsx
+1,21,Laboral,54900,72000,3,eje Montt y Los Laboreos.xlsx
+1,21,Laboral,72000,82800,6,eje Montt y Los Laboreos.xlsx
+1,21,Laboral,82800,86400,7,eje Montt y Los Laboreos.xlsx
+1,21,Sabado,0,25200,7,eje Montt y Los Laboreos.xlsx
+1,21,Sabado,25200,30600,6,eje Montt y Los Laboreos.xlsx
+1,21,Sabado,30600,34200,4,eje Montt y Los Laboreos.xlsx
+1,21,Sabado,34200,52200,5,eje Montt y Los Laboreos.xlsx
+1,21,Sabado,52200,74700,4,eje Montt y Los Laboreos.xlsx
+1,21,Sabado,74700,86400,6,eje Montt y Los Laboreos.xlsx

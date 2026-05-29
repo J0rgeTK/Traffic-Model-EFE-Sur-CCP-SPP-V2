@@ -1,0 +1,3 @@
+version_prog_id,nombre,fecha,tipo_version,fuente,descripcion
+1,Base / NOREPROG con prevaciado,2026-03-09,base_noreprog,Programaciones adjuntas + modelo previo,Programación base aplicable a cruces sin reconfiguración; incluye HCALL + prevaciado en la simulación.
+2,Reconfiguración + prevaciado,2026-03-09,reconfiguracion,Programaciones adjuntas + regla operacional del proyecto,Programación aplicable a cruces con reconfiguración; incluye HCALL + prevaciado en la simulación.

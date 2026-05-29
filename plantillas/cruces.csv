@@ -1,0 +1,23 @@
+cruce_id,nombre,comuna,latitud,longitud,num_pistas_total,tiene_semaforo,sentido_afectacion
+2,Los Claveles,San Pedro de la Paz,-36.8375928,-73.1140684,2,1,CC
+3,Las Garzas,San Pedro de la Paz,-36.837529,-73.1157421,2,0,CC
+4,Diagonal Bio Bio,San Pedro de la Paz,-36.8373918,-73.1185482,5,1,CW
+5,Daniel Belmar,San Pedro de la Paz,-36.8408444,-73.1289819,4,1,
+6,Michaihue,San Pedro de la Paz,-36.8454859,-73.1306104,2,1,CC
+7,Costa Verde,San Pedro de la Paz,-36.8579033,-73.1335805,4,1,CW
+8,Masisa,San Pedro de la Paz,-36.8695231,-73.1364139,4,1,CW
+10,Lomas Coloradas,San Pedro de la Paz,-36.8833434,-73.1397499,4,1,CW
+11,Portal San Pedro,San Pedro de la Paz,-36.8894704,-73.1412234,2,1,
+12,Conavicop,San Pedro de la Paz,-36.89724,-73.1431078,2,1,CC
+13,Grau,Coronel,-36.9184657,-73.1482183,2,0,
+14,Escuadron 2,Coronel,-36.9446797,-73.1545339,4,0,
+15,Escuadron 1,Coronel,-36.9578715,-73.1577167,4,1,CW
+16,Escuadron 3,Coronel,-36.968468,-73.1603153,4,0,
+17,San Francisco,Coronel,-36.9792699,-73.1627765,2,1,CC
+18,El Plomo,Coronel,-36.9818089,-73.162969,2,1,CW
+19,Volcán Villarrica,Coronel,-36.9854227,-73.1630904,2,1,
+20,Los Molineros,Coronel,-36.9926956,-73.1633616,2,1,
+21,Heroes de la Concepción,Coronel,-37.0071673,-73.1600985,3,1,
+22,Yobilo,Coronel,-37.0122259,-73.1582964,2,1,CC
+23,Cruz Mora,Coronel,-37.0166238,-73.1567482,2,0,
+24,Lo Rojas,Coronel,-37.0222135,-73.1541489,3,1,CC
