@@ -53,15 +53,23 @@ CREATE TABLE versiones_programacion (
     version_prog_id INTEGER PRIMARY KEY,
     nombre          TEXT NOT NULL UNIQUE,
     fecha           TEXT,
+    tipo_version    TEXT,
+    fuente          TEXT,
     descripcion     TEXT
 );
 
-CREATE TABLE planes_horarios (
-    plan_horario_id INTEGER PRIMARY KEY,
+-- Planes horarios POR CRUCE y POR TIPO DE DIA (Laboral, Sabado, Domingo/Festivo).
+CREATE TABLE planes_horarios_cruce (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
     version_prog_id INTEGER NOT NULL REFERENCES versiones_programacion(version_prog_id),
-    hora_inicio_s   INTEGER NOT NULL CHECK (hora_inicio_s BETWEEN 0 AND 86399),
+    cruce_id        INTEGER NOT NULL REFERENCES cruces(cruce_id),
+    tipo_dia        TEXT    NOT NULL DEFAULT 'Laboral'
+                    CHECK (tipo_dia IN ('Laboral','Sabado','Domingo/Festivo')),
+    hora_inicio_s   INTEGER NOT NULL CHECK (hora_inicio_s BETWEEN 0 AND 86400),
     hora_fin_s      INTEGER NOT NULL CHECK (hora_fin_s   BETWEEN 0 AND 86400),
-    plan_id         INTEGER NOT NULL
+    plan_id         INTEGER NOT NULL,
+    fuente          TEXT,
+    UNIQUE (version_prog_id, cruce_id, tipo_dia, hora_inicio_s)
 );
 
 CREATE TABLE programacion_fases (
@@ -76,8 +84,35 @@ CREATE TABLE programacion_fases (
     cum_fin_s        INTEGER NOT NULL,
     es_verde_lateral INTEGER NOT NULL DEFAULT 0 CHECK (es_verde_lateral IN (0,1)),
     ciclo_s          INTEGER NOT NULL,
+    fase_origen      TEXT,
+    fuente           TEXT,
+    confianza        TEXT,
+    estado_carga     TEXT,
     UNIQUE (version_prog_id, cruce_id, plan_id, fase_id)
 );
 
+-- Modelo operacional por cruce: regla operativa que aplica al cruce.
+CREATE TABLE modelo_operacional_cruce (
+    cruce_id             INTEGER PRIMARY KEY REFERENCES cruces(cruce_id),
+    tipo_modelo          TEXT    NOT NULL
+                         CHECK (tipo_modelo IN ('RECONFIG','NOREPROG')),
+    usa_reconfiguracion  INTEGER NOT NULL DEFAULT 0 CHECK (usa_reconfiguracion IN (0,1)),
+    version_prog_id      INTEGER NOT NULL REFERENCES versiones_programacion(version_prog_id),
+    descripcion          TEXT,
+    fuente               TEXT
+);
+
+-- Declaracion del proyecto: cruces en el alcance con su ID SCATS, via, etc.
+CREATE TABLE cruces_reconfiguracion (
+    cruce_id           INTEGER PRIMARY KEY REFERENCES cruces(cruce_id),
+    via_principal      TEXT,
+    codigo_proyecto    TEXT,
+    comuna_referencia  TEXT,
+    estado_carga       TEXT,
+    confianza          TEXT,
+    fuente             TEXT,
+    fecha_declaracion  TEXT DEFAULT (date('now'))
+);
+
 CREATE INDEX ix_fases_cruce_plan ON programacion_fases (version_prog_id, cruce_id, plan_id);
-CREATE INDEX ix_planes_version   ON planes_horarios (version_prog_id);
+CREATE INDEX ix_planes_cruce ON planes_horarios_cruce (version_prog_id, cruce_id, tipo_dia);

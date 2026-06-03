@@ -15,10 +15,12 @@ CREATE TABLE llegadas_vehiculares (
     id          INTEGER PRIMARY KEY,
     campania_id INTEGER NOT NULL REFERENCES campanias_medicion(campania_id),
     cruce_id    INTEGER NOT NULL,
+    tipo_dia    TEXT    NOT NULL DEFAULT 'Laboral'
+                CHECK (tipo_dia IN ('Laboral','Sabado','Domingo/Festivo')),
     t_inicio_s  INTEGER NOT NULL CHECK (t_inicio_s BETWEEN 0 AND 86399),
     t_fin_s     INTEGER NOT NULL CHECK (t_fin_s   BETWEEN 0 AND 86400),
     flujo_veh_h REAL    NOT NULL CHECK (flujo_veh_h >= 0),
-    UNIQUE (campania_id, cruce_id, t_inicio_s)
+    UNIQUE (campania_id, cruce_id, tipo_dia, t_inicio_s)
 );
 
 CREATE TABLE itinerario_versiones (
@@ -61,6 +63,6 @@ CREATE TABLE eventos_barrera (
     CHECK (hcall_in_s <= hcall_out_s)
 );
 
-CREATE INDEX ix_llegadas_cruce ON llegadas_vehiculares (campania_id, cruce_id, t_inicio_s);
+CREATE INDEX ix_llegadas_cruce ON llegadas_vehiculares (campania_id, cruce_id, tipo_dia, t_inicio_s);
 CREATE INDEX ix_paradas_servicio ON itinerario_paradas (servicio_id, orden);
 CREATE INDEX ix_hcall_itin ON eventos_barrera (itinerario_id, cruce_id, hcall_in_s);
