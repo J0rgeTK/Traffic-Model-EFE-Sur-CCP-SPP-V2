@@ -110,6 +110,7 @@ def simular_proyecto(con, cruce: str, **opts) -> dict:
     """
     from modelo_cruces import Simulador
     from modelo_cruces.catalogo import buscar, construir_catalogo
+    from modelo_cruces.saturacion import analizar as analizar_sat
 
     c = buscar(construir_catalogo(con), cruce)
     if c is None or not c.simulable:
@@ -120,7 +121,7 @@ def simular_proyecto(con, cruce: str, **opts) -> dict:
     rb = Simulador(inputs_de_variante(con, v_base, **opts)).run(mode='corrected',
                                                                 keep_series=True)
     if v_rec is v_base:
-        rr = rb                                          # no hay reconfig
+        rr = rb
     else:
         rr = Simulador(inputs_de_variante(con, v_rec, **opts)).run(
             mode='corrected', keep_series=True)
@@ -132,14 +133,25 @@ def simular_proyecto(con, cruce: str, **opts) -> dict:
     ahorro_total      = actual - proyecto
     aporte_prevaciado = actual - solo_prevaciado
     aporte_reconfig   = solo_prevaciado - proyecto
+
+    # Analisis Akcelik (saturacion por banda horaria)
+    try:
+        sat_actual   = analizar_sat(rb, n_carriles=2.0, usar_pre=False)
+        sat_proyecto = analizar_sat(rr, n_carriles=2.0, usar_pre=True)
+    except Exception:
+        sat_actual = sat_proyecto = None
+
     return {
         'cruce': cruce, 'tiene_reconfig': v_rec is not v_base,
         'actual': actual, 'solo_prevaciado': solo_prevaciado,
         'solo_reconfig': solo_reconfig, 'proyecto': proyecto,
-        'ahorro_total': ahorro_total, 'reduccion_pct': ahorro_total / actual if actual > 0 else 0,
-        'aporte_prevaciado': aporte_prevaciado, 'aporte_reconfig': aporte_reconfig,
+        'ahorro_total': ahorro_total,
+        'reduccion_pct': ahorro_total / actual if actual > 0 else 0,
+        'aporte_prevaciado': aporte_prevaciado,
+        'aporte_reconfig': aporte_reconfig,
         'demanda': rb.demanda, 'cola_final_actual': rb.cola_final,
         'serie_actual': rb.series, 'serie_proyecto': rr.series,
+        'saturacion_actual': sat_actual, 'saturacion_proyecto': sat_proyecto,
     }
 
 
