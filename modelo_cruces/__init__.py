@@ -51,6 +51,13 @@ from .desglose_modal import (
 from .riesgos import (
     Riesgo, MatrizRiesgos, matriz_riesgos_estandar,
 )
+from .extrapolacion import (
+    AnclaSimulada, CruceExtrapolado, caracterizar_anclas,
+    extrapolar_cruce, estimar_capacidad_pico_ref,
+)
+from .cartera import (
+    ItemCartera, CorteTemporal, ResultadoCartera, evaluar_cartera, UF_CLP,
+)
 from .incertidumbre import (
     ParamIncierto, monte_carlo_van, sobol_van, break_even,
     valor_informacion_perfecta, construir_eval_van,
@@ -82,4 +89,7 @@ __all__ = [
     'ParamIncierto', 'monte_carlo_van', 'sobol_van', 'break_even',
     'valor_informacion_perfecta', 'construir_eval_van',
     'ResultadoMonteCarlo', 'ResultadoSobol', 'BreakEven', 'ValorInformacion',
+    'AnclaSimulada', 'CruceExtrapolado', 'caracterizar_anclas',
+    'extrapolar_cruce', 'estimar_capacidad_pico_ref',
+    'ItemCartera', 'CorteTemporal', 'ResultadoCartera', 'evaluar_cartera', 'UF_CLP',
 ]
