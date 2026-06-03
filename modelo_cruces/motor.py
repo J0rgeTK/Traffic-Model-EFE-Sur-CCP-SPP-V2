@@ -298,7 +298,8 @@ class Simulador:
         series = {}
         if keep_series:
             series = dict(C=C[S], V=V[S], Q=X[S], Qpre=AO[S],
-                          G=G[S], R=R[S], AK=AK[S], plan=AS[S])
+                          G=G[S], R=R[S], Geff=Geff[S], Cap=Cap[S],
+                          AK=AK[S], plan=AS[S], ciclo=ciclo[S])
 
         return Resultados(
             crossing=inp.crossing, mode=mode,
