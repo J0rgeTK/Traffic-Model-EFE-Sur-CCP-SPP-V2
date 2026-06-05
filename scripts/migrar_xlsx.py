@@ -1,8 +1,8 @@
 """
-Migracion Excel -> SQLite (CLI de compatibilidad)
+Migracion fuente de referencia -> SQLite (CLI de compatibilidad)
 =================================================
 Combina dos fuentes:
-  1. Excel ORIGINAL (Analisis_Cruces_L2_NOREPROG_*.xlsx): BBDD,
+  1. fuente de referencia (Analisis_Cruces_L2_NOREPROG_*.xlsx): BBDD,
      aforos vehiculares, eventos HCALL, itinerario.
   2. Archivo v2 (base_programacion_actualizacion_modelo_cruces_v2.xlsx):
      versiones, planes por cruce/tipo_dia, programacion_fases,
@@ -15,17 +15,17 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from modelo_cruces.config import FuenteExcel
-from modelo_cruces.importador import importar_excel, importar_programacion_v2
+from modelo_cruces.config import FuenteReferencia
+from modelo_cruces.importador import importar_referencia, importar_programacion_v2
 
 RAIZ = Path(__file__).resolve().parent.parent
 FUENTES_ORIG = [
-    FuenteExcel(
+    FuenteReferencia(
         ruta=str(RAIZ / 'fuentes' /
                  'Analisis_Cruces_L2_NOREPROG_PREVACIADO_PLAN_DINAMICO_BASE_REAL.xlsx'),
         version='Base real (heredada)',
         campania='Aforos base (NOREPROG)', es_base=True),
-    FuenteExcel(
+    FuenteReferencia(
         ruta=str(RAIZ / 'fuentes' /
                  'Analisis_Cruces_L2_Reprog_Mar9_PREVACIADO_N2_PLAN_DINAMICO_REHECHO.xlsx'),
         version='Reprogramado Mar9 (heredada)',
@@ -42,7 +42,7 @@ def main():
         raise SystemExit(f'ERROR: falta {ARCHIVO_V2.name} en fuentes/.')
 
     print('Construyendo bases de datos:')
-    importar_excel(FUENTES_ORIG, RAIZ / 'data', RAIZ / 'data' / 'schema')
+    importar_referencia(FUENTES_ORIG, RAIZ / 'data', RAIZ / 'data' / 'schema')
     importar_programacion_v2(ARCHIVO_V2, RAIZ / 'data')
 
     # escenarios de ejemplo a partir del catalogo
