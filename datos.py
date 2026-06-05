@@ -173,7 +173,7 @@ def construir_inputs(con, cruce: str, version_prog_id: int | None = None,
     defecto, Sabado o Domingo/Festivo).
 
     El flujo en la base es CRUDO; el motor aplica k_dem. Para reproducir
-    el Excel original usar k_dem=1.1. `post_hcall_lateral=True` activa la
+    replicar el caso de referencia historico usar k_dem=1.1. `post_hcall_lateral=True` activa la
     reconfiguracion (salto al verde lateral al terminar HCALL).
     """
     cid = con.execute('SELECT cruce_id FROM infra.cruces WHERE nombre = ?',
