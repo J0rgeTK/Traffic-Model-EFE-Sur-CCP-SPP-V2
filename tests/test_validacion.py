@@ -1,7 +1,7 @@
 """
 Test de validación del motor de simulación.
 Comprueba que el motor, leyendo desde las bases de datos, reproduce las
-cifras del modelo Excel original (modo faithful, k_dem = 1.1).
+cifras del modelo referencia original (modo faithful, k_dem = 1.1).
 
 Ejecutar:  python tests/test_validacion.py
 """
@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import datos
 from motor_sim import Simulador
 
-# Valores de referencia del Excel (hoja SIM, modo faithful):
+# Valores de referencia del referencia (hoja SIM, modo faithful):
 REFERENCIA = {
     'Costa Verde':      {'demanda': 1371.2, 'tol_demanda': 1.0},
     'Diagonal Bio Bio': {'demanda': 4676.8, 'tol_demanda': 1.0},
@@ -37,7 +37,7 @@ def main() -> int:
     if fallos:
         print(f'\n{fallos} prueba(s) fallida(s).')
         return 1
-    print('\nTodas las pruebas pasaron: el motor reproduce el modelo Excel.')
+    print('\nTodas las pruebas pasaron: el motor reproduce el caso de referencia.')
     return 0
 
 
