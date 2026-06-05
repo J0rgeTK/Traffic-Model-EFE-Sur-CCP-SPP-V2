@@ -11,7 +11,7 @@ Si el proyecto aporta verde lateral extra (pre-vaciado, reconfig), el
 principal pierde verde y su espera aumenta. Ignorarlo es metodologicamente
 asimetrico y puede llevar a sobreestimar el beneficio neto.
 
-NOTA IMPORTANTE: el levantamiento de aforos del Excel original solo
+NOTA IMPORTANTE: el levantamiento de aforos del fuente de referencia solo
 cubre el lateral. Este modulo trabaja con un FLUJO PARAMETRICO del
 principal (configurable por cruce), tipicamente derivado de:
   - DOT Chile, MTT, Plan Maestro Vial Concepcion

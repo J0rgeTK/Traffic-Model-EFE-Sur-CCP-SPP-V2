@@ -2,7 +2,7 @@
 Modelos tipados del dominio
 ===========================
 Dataclasses que reemplazan los diccionarios sueltos y los nombres
-heredados de columnas Excel por estructuras con nombres semanticos.
+heredados de columnas tabulares por estructuras con nombres semanticos.
 
 Reconfiguracion (segun aclaracion del proyecto):
   - Para TODOS los cruces del proyecto el modelo es:
@@ -87,7 +87,7 @@ class CatalogoCruce:
 
 
 # --------------------------------------------------------------------- #
-#  Insumos canonicos (para la plantilla tabular independiente del Excel)
+#  Insumos canonicos (para la plantilla tabular independiente de la fuente)
 # --------------------------------------------------------------------- #
 @dataclass
 class FaseCanonica:

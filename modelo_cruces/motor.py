@@ -1,4 +1,4 @@
-"""Motor de simulacion segundo a segundo (validado contra el Excel original).
+"""Motor de simulacion segundo a segundo (validado contra el caso de referencia).
 
 Movido desde motor_sim.py. La raiz mantiene un shim de compatibilidad.
 """
@@ -145,7 +145,7 @@ class Simulador:
     def _build_arrivals(self):
         """Lambda (veh/s) por segundo del dia para el cruce."""
         self.lam = np.zeros(SEC_DAY, dtype=float)
-        # k_dem se aplica de forma EXPLICITA aqui. El Excel ya lo tiene
+        # k_dem se aplica de forma EXPLICITA aqui. La fuente ya lo tiene
         # incrustado en Llegadas.lambda, por eso el factor base es lambda
         # y k_dem actua como multiplicador adicional configurable.
         for r in self.inp.llegadas:
@@ -161,7 +161,7 @@ class Simulador:
         u = inp.n_carriles / inp.h          # capacidad veh/s (L2 = N1/L1)
         kdem = inp.k_dem
 
-        # ventana de calculo. El Excel solo tenia formulas hasta fila ~56799.
+        # ventana de calculo. La fuente solo tenia formulas hasta fila ~56799.
         # Simulamos hasta tend + margen para el lookahead del pre-vaciado.
         lookahead = 400
         n = (tend - t0) + lookahead
@@ -169,7 +169,7 @@ class Simulador:
         C = t0 + idx                         # segundo del dia
         tod = C % SEC_DAY
 
-        # Excel: rango "faithful" del pre-vaciado = filas 7..10807 -> C<=32400
+        # Ventana de calculo: rango "faithful" del pre-vaciado = filas 7..10807 -> C<=32400
         faithful_limit = t0 + 10800          # = 09:00 si t0=06:00
 
         # --- HCALL (D, E) ---
@@ -235,7 +235,7 @@ class Simulador:
             j = tgt - t0
             if 0 <= j < n:
                 if mode == 'faithful' and tgt > faithful_limit:
-                    continue                 # bug Excel: lookup acotado
+                    continue                 # limite de la ventana de calculo
                 AA[i] = D[j]
 
         AF = np.zeros(n, dtype=int)
@@ -269,7 +269,7 @@ class Simulador:
 
         # rango para cola max/final
         if mode == 'faithful':
-            rng = S & (C <= faithful_limit)   # bug Excel: solo 3 h
+            rng = S & (C <= faithful_limit)   # ventana de pre-vaciado de 3 h
         else:
             rng = S                           # corregido: ventana completa
 
@@ -277,7 +277,7 @@ class Simulador:
         demanda = float(np.sum(V[S]))
         espera_vs = float(np.sum(X[S]))
         if mode == 'faithful':
-            # bug Excel: AE3 (espera pre) suma SOLO hasta fila 10807
+            # la espera de pre-vaciado se acumula en la ventana de 3 h
             espera_pre_vs = float(np.sum(AO[S & (C <= faithful_limit)]))
             demanda_pre = demanda             # AE2 usa ventana completa
         else:
@@ -318,7 +318,7 @@ class Simulador:
     def run_stochastic(self, n_rep: int = 30, seed: int = 1) -> dict:
         """Corre n_rep replicaciones con llegadas Poisson por segundo.
 
-        El modelo Excel es deterministico: usa la tasa media lambda como
+        El modelo es deterministico: usa la tasa media lambda como
         si llegaran 0.03 veh exactos cada segundo. La literatura (Newell
         1968) advierte que esto SUBESTIMA la cola. Aqui las llegadas de
         cada segundo se muestrean Poisson(lambda) y se promedia.

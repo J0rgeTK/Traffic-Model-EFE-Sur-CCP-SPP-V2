@@ -6,10 +6,10 @@ Paquete del modelo de cruces ferroviarios de la Linea 2 Biotren.
 Modulos:
   motor        motor de simulacion segundo a segundo (validado)
   modelos      dataclasses del dominio (Variante, CatalogoCruce, ...)
-  config       mapeo con el Excel original (sin posiciones hardcodeadas)
+  config       mapeo con el fuente de referencia (sin posiciones hardcodeadas)
   catalogo     variantes por cruce (base / reconfiguracion / pre-vaciado)
   validadores  reglas de integridad de las bases de datos
-  importador   importadores modulares (Excel original; plantilla canonica)
+  importador   importadores modulares (fuente de referencia; plantilla canonica)
 """
 from .motor import Inputs, Resultados, PhasePlan, Simulador
 from .modelos import (
@@ -55,6 +55,14 @@ from .extrapolacion import (
     AnclaSimulada, CruceExtrapolado, caracterizar_anclas,
     extrapolar_cruce, estimar_capacidad_pico_ref,
 )
+from .proyecto_incremental import (
+    EvaluacionIncremental, EjeBeneficio, evaluar_incremental,
+    construir_ejes_beneficio, beneficio_valorizable_total,
+)
+from .tipologia import (
+    ClasificacionCruce, clasificar, clasificar_catalogo, resumen_tipologico,
+    TIPOLOGIAS, MODELO_POR_TIPOLOGIA, TIPOLOGIAS_CON_BENEFICIO_PROYECTO,
+)
 from .cartera import (
     ItemCartera, CorteTemporal, ResultadoCartera, evaluar_cartera, UF_CLP,
 )
@@ -92,4 +100,8 @@ __all__ = [
     'AnclaSimulada', 'CruceExtrapolado', 'caracterizar_anclas',
     'extrapolar_cruce', 'estimar_capacidad_pico_ref',
     'ItemCartera', 'CorteTemporal', 'ResultadoCartera', 'evaluar_cartera', 'UF_CLP',
+    'ClasificacionCruce', 'clasificar', 'clasificar_catalogo', 'resumen_tipologico',
+    'TIPOLOGIAS', 'MODELO_POR_TIPOLOGIA', 'TIPOLOGIAS_CON_BENEFICIO_PROYECTO',
+    'EvaluacionIncremental', 'EjeBeneficio', 'evaluar_incremental',
+    'construir_ejes_beneficio', 'beneficio_valorizable_total',
 ]

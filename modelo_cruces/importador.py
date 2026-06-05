@@ -3,7 +3,7 @@ Importadores
 ============
 Dos importadores complementarios:
 
-  importar_excel(fuentes, ...)         -- Excel original (BBDD, aforos, HCALL).
+  importar_referencia(fuentes, ...)         -- fuente de referencia (BBDD, aforos, HCALL).
   importar_programacion_v2(ruta, ...)  -- Nuevo libro con la programacion
                                           tabular y el modelo operacional por
                                           cruce. Es la FUENTE DE VERDAD para
@@ -22,7 +22,7 @@ from pathlib import Path
 import openpyxl
 
 from . import config as C
-from .config import FuenteExcel
+from .config import FuenteReferencia
 
 
 # ----------------------------- utilidades --------------------------- #
@@ -111,7 +111,7 @@ def _leer_bloque_hcall(ws, fila_marca: int) -> dict[str, list[int]]:
 
 # ------------------------- carga por base --------------------------- #
 def _cargar_infraestructura_base(wb_orig, dir_data: Path, dir_schema: Path):
-    """Carga estaciones, cruces, barrera, tramo desde el Excel ORIGINAL.
+    """Carga estaciones, cruces, barrera, tramo desde el fuente de referencia.
 
     No carga programaciones ni planes (esos vienen del archivo v2).
     Devuelve cruce_id_map: {nombre_norm -> cruce_id}.
@@ -195,14 +195,14 @@ def _cargar_infraestructura_base(wb_orig, dir_data: Path, dir_schema: Path):
 
 
 def _cargar_demanda(wbs, fuentes, cruce_id, dir_data: Path, dir_schema: Path):
-    """Carga aforos (Laboral) + HCALL + itinerario desde Excel original."""
+    """Carga aforos (Laboral) + HCALL + itinerario desde fuente de referencia."""
     con = _crear_db(dir_data / 'demanda.db', dir_schema / '2_demanda.sql')
 
     for cid, f in enumerate(fuentes, 1):
         wb = wbs[f.ruta]
         con.execute('INSERT INTO campanias_medicion (campania_id,nombre,'
                     'descripcion) VALUES (?,?,?)',
-                    (cid, f.campania, 'Importado del Excel ' + Path(f.ruta).name))
+                    (cid, f.campania, 'Importado de la fuente de referencia ' + Path(f.ruta).name))
         lg = wb[C.HOJAS['llegadas']]; cl = C.COLS_LLEGADAS
         for r in range(2, lg.max_row + 1):
             cruce = lg.cell(row=r, column=cl['cruce']).value
@@ -212,7 +212,7 @@ def _cargar_demanda(wbs, fuentes, cruce_id, dir_data: Path, dir_schema: Path):
             veh_h = lg.cell(row=r, column=cl['veh_h']).value
             if kid is None or t_ini is None or veh_h is None:
                 continue
-            # Los aforos del Excel original son de dia LABORAL.
+            # Los aforos del fuente de referencia son de dia LABORAL.
             con.execute('INSERT OR IGNORE INTO llegadas_vehiculares (campania_id,'
                         'cruce_id,tipo_dia,t_inicio_s,t_fin_s,flujo_veh_h) '
                         'VALUES (?,?,?,?,?,?)',
@@ -221,7 +221,7 @@ def _cargar_demanda(wbs, fuentes, cruce_id, dir_data: Path, dir_schema: Path):
 
     con.execute('INSERT INTO itinerario_versiones (itinerario_id,nombre,'
                 'descripcion) VALUES (1,?,?)',
-                ('Itinerario L2 base', 'Malla operacional del Excel'))
+                ('Itinerario L2 base', 'Malla operacional de referencia'))
     hc = wbs[fuentes[0].ruta][C.HOJAS['hcall']]
     fila_in = _fila_marca(hc, C.HCALL_MARCA_IN)
     fila_out = _fila_marca(hc, C.HCALL_MARCA_OUT)
@@ -251,9 +251,9 @@ def _cargar_escenarios_vacios(dir_data: Path, dir_schema: Path):
     con.close()
 
 
-def importar_excel(fuentes: list[FuenteExcel], dir_data: Path,
+def importar_referencia(fuentes: list[FuenteReferencia], dir_data: Path,
                    dir_schema: Path, verbose: bool = True) -> dict:
-    """Importa el Excel ORIGINAL: BBDD, aforos, HCALL, itinerario.
+    """Importa el fuente de referencia: BBDD, aforos, HCALL, itinerario.
 
     NO importa programaciones/planes (esos vienen del archivo v2).
     """
