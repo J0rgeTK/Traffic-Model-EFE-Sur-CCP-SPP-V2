@@ -1,84 +1,111 @@
-"""Sección 1 — Cruces estudiados: catálogo, tipología y ubicación."""
+"""Sección 1 — Cruces estudiados: antecedente, selección y justificación."""
 import pandas as pd
 import streamlit as st
 
 import datos
-from modelo_cruces.tipologia import clasificar_catalogo, TIPOLOGIAS
+from modelo_cruces.tipologia import clasificar_catalogo
 
 st.set_page_config(page_title='Cruces estudiados', page_icon='📍', layout='wide')
 st.title('1 · Cruces estudiados')
-st.caption('Universo de cruces del corredor, su tipología operacional y la '
-           'definición del alcance de evaluación.')
+st.caption('Antecedente del corredor, criterio de selección de los cruces a '
+           'evaluar y su fundamento técnico.')
 
-con = datos.conectar()
-clasif = clasificar_catalogo(con, ids_corredor={2,4,6,7,8,10,11,12})
+con = datos.conectar(); cur = con.cursor()
+clasif = clasificar_catalogo(con, ids_corredor={2,4,6,7,8,10,11,12,14})
 
 st.markdown("""
-El corredor de la Línea 2 del Biotrén concentra los cruces a nivel
-semaforizados de mayor fricción entre el modo ferroviario y el vial. Cada
-cruce se clasifica según su **tipología operacional**, que determina el
-modelo de evaluación aplicable. No todos los cruces admiten el mismo
-tratamiento: un paso a nivel semaforizado sobre una arteria, un cruce
-controlado solo por barrera y una intersección urbana clásica responden a
-lógicas distintas.
+La Línea 2 del Biotrén recorre el eje **Ruta 160** entre San Pedro de la
+Paz y Coronel, e intersecta la vialidad mediante 22 cruces a nivel. El
+antecedente del corredor reúne, para cada cruce, su ubicación, geometría,
+presencia de semáforo, la vía principal sobre la que se emplaza y el
+movimiento vial que interactúa con el paso del tren. Sobre esta base se
+define el conjunto de cruces que el estudio evalúa.
 """)
 
-st.subheader('Tipologías operacionales')
-tip_df = pd.DataFrame([
-    {'Tipo': 'A', 'Descripción': TIPOLOGIAS['A'],
-     'Admite el proyecto': 'Sí', 'Modelo': 'Simulación segundo a segundo + saturación'},
-    {'Tipo': 'B', 'Descripción': TIPOLOGIAS['B'],
-     'Admite el proyecto': 'No', 'Modelo': 'Fuera de alcance (sin semáforo)'},
-    {'Tipo': 'C', 'Descripción': TIPOLOGIAS['C'],
-     'Admite el proyecto': 'No', 'Modelo': 'Intersección completa (evaluación separada)'},
-    {'Tipo': 'D', 'Descripción': TIPOLOGIAS['D'],
-     'Admite el proyecto': 'Sí', 'Modelo': 'Simulación + saturación (corredor coordinado)'},
-])
-st.dataframe(tip_df, use_container_width=True, hide_index=True)
-
-st.subheader('Catálogo de cruces y clasificación')
-cur = con.cursor()
-con_prog = set(r[0] for r in cur.execute(
-    "SELECT DISTINCT cruce_id FROM infra.planes_horarios_cruce").fetchall())
+st.subheader('Antecedente del corredor')
 filas = []
-for cid in sorted(clasif):
-    c = clasif[cid]
-    r = cur.execute("SELECT comuna, tiene_semaforo, num_pistas_total "
-                    "FROM infra.cruces WHERE cruce_id=?", (cid,)).fetchone()
-    comuna = r['comuna'] or '—'
-    ruta = ('Simulación directa' if c.simulable_directo else
-            'Estimación por tipología' if c.extrapolable else
-            'Fuera de alcance' if c.tipologia == 'B' else
-            'Evaluación separada')
+for r in cur.execute("""SELECT a.cruce_id, c.nombre, a.comuna, a.pistas_totales,
+        a.pistas_mov_estudio, a.tiene_semaforo, a.via_principal, a.calle_lateral,
+        a.evaluacion FROM infra.antecedentes_cruce a
+        JOIN infra.cruces c ON c.cruce_id=a.cruce_id ORDER BY a.cruce_id""").fetchall():
     filas.append({
-        'ID': cid, 'Cruce': c.nombre, 'Comuna': comuna,
-        'Tipología': c.tipologia, 'Semáforo': 'Sí' if r['tiene_semaforo'] else 'No',
-        'Pistas': r['num_pistas_total'], 'Tratamiento': ruta,
+        'Cruce': r['nombre'], 'Comuna': r['comuna'],
+        'Vía principal': r['via_principal'], 'Calle lateral': r['calle_lateral'],
+        'Pistas': r['pistas_totales'], 'Mov. estudio': r['pistas_mov_estudio'],
+        'Semáforo': 'Sí' if r['tiene_semaforo'] else 'No',
+        'Evaluado': 'Sí' if r['evaluacion'] else '—',
     })
-df = pd.DataFrame(filas)
-st.dataframe(df, use_container_width=True, hide_index=True)
+st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+
+st.subheader('Cruces seleccionados para evaluación')
+evaluados = [c for c in clasif.values() if c.admite_reconfiguracion]
+st.markdown(f"""
+Se evalúan **{len(evaluados)} cruces**, todos emplazados sobre el eje
+interurbano Ruta 160 y dotados de semáforo coordinable con el paso del
+tren. Ocho se ubican en San Pedro de la Paz y uno en Coronel
+(Escuadrón 2). En estos cruces existe un **movimiento lateral
+identificable y caracterizado** que cruza la vía férrea, cuya interacción
+con la barrera y el ciclo semafórico es la que el proyecto aborda.
+""")
+ev_df = pd.DataFrame([{
+    'Cruce': c.nombre,
+    'Comuna': cur.execute("SELECT comuna FROM infra.antecedentes_cruce WHERE cruce_id=?",
+                          (c.cruce_id,)).fetchone()[0],
+    'Tratamiento': 'Simulación directa' if c.simulable_directo else 'Estimación por tipología',
+} for c in evaluados])
+st.dataframe(ev_df, use_container_width=True, hide_index=True)
+
+st.subheader('Cruces no incluidos y su fundamento')
+
+st.markdown('**a) Cruces sin semáforo — fuera del alcance del proyecto**')
+sin_sem = [c for c in clasif.values() if c.tipologia == 'B']
+st.markdown(f"""
+{len(sin_sem)} cruces no cuentan con semáforo de tráfico: Las Garzas,
+Grau, Escuadrón 1, Escuadrón 3 y Cruz Mora. El proyecto consiste en
+integrar la información del tren a la **gestión semafórica**; donde no
+existe un controlador sobre el cual operar, la intervención no tiene
+objeto. Estos cruces quedan fuera del alcance, sin que ello implique un
+juicio sobre su operación, que se rige únicamente por la barrera.
+""")
+
+st.markdown('**b) Intersecciones urbanas — requieren información y un enfoque específico**')
+urbanos = [c for c in clasif.values() if c.tipologia == 'C']
+st.markdown(f"""
+{len(urbanos)} cruces semaforizados no se incorporan a esta evaluación.
+Siete se ubican en la trama urbana de Coronel (San Francisco, El Plomo,
+Volcán Villarrica, Los Molineros, Héroes de la Concepción, Yobilo y Lo
+Rojas), sobre vías locales como Av. Manuel Montt y Av. Carlos Prats, no
+sobre el eje interurbano. Estas intersecciones operan con **varios
+movimientos de la trama vial adyacente**, y sus tiempos de verde responden
+a la coordinación de la red urbana local. Para evaluarlos de forma
+representativa se requiere la **caracterización de los flujos de los
+movimientos que interactúan con el cruce ferroviario** y el detalle de los
+**tiempos de verde asignados**, información que no está disponible en esta
+etapa.
+
+El caso de **Daniel Belmar** responde a una razón distinta y definitiva.
+El Puente Industrial se encuentra **operativo desde fines de 2025**, y la
+redistribución de flujos asociada a su apertura **ya está reflejada en los
+aforos vigentes**. En su **etapa final**, este cruce se cerrará al paso
+vehicular. No procede, por tanto, evaluar un beneficio sostenido en el
+tiempo sobre una operación que cesará. Su flujo residual —aún elevado— se
+redistribuirá hacia los cruces vecinos al momento del cierre.
+""")
 
 c1, c2, c3, c4 = st.columns(4)
-from collections import Counter
-cnt = Counter(c.tipologia for c in clasif.values())
-c1.metric('Tipo A/D (evaluables)', cnt.get('A', 0) + cnt.get('D', 0))
-c2.metric('Tipo B (sin semáforo)', cnt.get('B', 0))
-c3.metric('Tipo C (intersección)', cnt.get('C', 0))
-c4.metric('Total corredor', len(clasif))
+c1.metric('Cruces del corredor', len(clasif))
+c2.metric('Evaluados', len(evaluados))
+c3.metric('Sin semáforo', len(sin_sem))
+c4.metric('Intersecciones urbanas', len(urbanos))
 
 st.subheader('Ubicación de los cruces')
-try:
-    pts = []
-    for cid in sorted(clasif):
-        r = cur.execute("SELECT lat, lon, nombre FROM infra.cruces WHERE cruce_id=?",
-                        (cid,)).fetchone()
-        if r and r['lat'] and r['lon']:
-            pts.append({'lat': r['lat'], 'lon': r['lon']})
-    if pts:
-        st.map(pd.DataFrame(pts))
-    else:
-        st.info('Coordenadas no disponibles en la base de datos para el mapa.')
-except Exception:
-    st.info('Coordenadas no disponibles en la base de datos para el mapa.')
+pts = []
+for cid in sorted(clasif):
+    r = cur.execute("SELECT latitud, longitud FROM infra.cruces WHERE cruce_id=?",
+                    (cid,)).fetchone()
+    if r and r['latitud'] and r['longitud']:
+        pts.append({'lat': r['latitud'], 'lon': r['longitud']})
+if pts:
+    st.map(pd.DataFrame(pts))
 
 con.close()

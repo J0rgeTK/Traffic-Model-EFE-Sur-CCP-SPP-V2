@@ -38,8 +38,8 @@ st.dataframe(pd.DataFrame([
      'Valor': f'{TASA_CRECIMIENTO_DEMANDA_DEFAULT*100:.1f} % anual (referencial)',
      'Fuente': 'Tasas SECTRA Sur, corredor Línea 2'},
     {'Parámetro': 'Valor de la UF',
-     'Valor': f'{UF_CLP:,.0f} CLP',
-     'Fuente': 'Referencial'},
+     'Valor': f'{UF_CLP:,.2f} CLP',
+     'Fuente': 'UF al 05-06-2026'},
 ], columns=['Parámetro', 'Valor', 'Fuente']),
     use_container_width=True, hide_index=True)
 
@@ -94,4 +94,12 @@ programación registrada, su resultado se estima por transferencia desde
 cruces de la misma tipología y régimen de saturación, reportando bandas de
 incertidumbre. Esta estimación sirve para dimensionar la cartera, no para
 reclamar beneficio formal por cruce.
-""")
+
+**Vigencia de los aforos.** Los aforos utilizados corresponden a
+mediciones realizadas con el Puente Industrial ya operativo (desde fines
+de 2025). En consecuencia, los flujos reflejan la red vial una vez
+ocurrida la redistribución asociada a su apertura, y no requieren un ajuste
+adicional por ese efecto. El cierre futuro del cruce Daniel Belmar, previsto
+en la etapa final del Puente Industrial, redistribuirá su flujo residual
+hacia los cruces vecinos del eje; este efecto es posterior a la medición
+vigente.""")
