@@ -22,7 +22,7 @@ Grupos de presentacion:
 from __future__ import annotations
 from dataclasses import dataclass, field
 
-UF_CLP = 39727.96                  # UF al 31-dic-2025 (referencial)
+UF_CLP = 40695.38                  # UF al 05-06-2026
 TASA_SOCIAL = 0.055
 CORTES_DEFAULT = (0, 10, 20)
 

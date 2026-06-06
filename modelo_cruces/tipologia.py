@@ -131,26 +131,96 @@ def clasificar(cruce_id: int, nombre: str, tiene_semaforo: bool,
 def clasificar_catalogo(con, ids_interseccion_clasica: set | None = None,
                         ids_corredor: set | None = None
                         ) -> dict[int, ClasificacionCruce]:
-    """Clasifica todos los cruces del catalogo leyendo sus atributos.
+    """Clasifica los cruces a partir del antecedente oficial del corredor.
 
-    `ids_interseccion_clasica`: cruces marcados por el equipo como
-        interseccion clasica (San Francisco a Lo Rojas = 17..24).
-    `ids_corredor`: cruces en corredor coordinado (Ruta 160 San Pedro).
+    La seleccion de cruces a evaluar proviene del antecedente (tabla
+    `infra.antecedentes_cruce`, columna `evaluacion`). La tipologia y el
+    motivo tecnico se derivan de los atributos del antecedente: presencia
+    de semaforo y via principal sobre la que se emplaza el cruce.
+
+    Criterios:
+      - Evaluado (evaluacion=1): cruce semaforizado sobre el eje
+        interurbano (Ruta 160), con un movimiento lateral caracterizado
+        que interactua con el paso del tren. Tipologia A/D.
+      - Sin semaforo: fuera del alcance del proyecto. Tipologia B.
+      - Semaforizado fuera del eje interurbano (trama urbana de Coronel) o
+        sin caracterizacion de flujos del movimiento de estudio:
+        interseccion urbana que requiere un levantamiento de informacion y
+        un modelo especifico. Tipologia C.
     """
-    ids_interseccion_clasica = ids_interseccion_clasica or set(range(17, 25))
     ids_corredor = ids_corredor or set()
     cur = con.cursor()
     con_prog = set(r[0] for r in cur.execute(
         "SELECT DISTINCT cruce_id FROM infra.planes_horarios_cruce").fetchall())
+    # Antecedente oficial
+    ant = {r['cruce_id']: r for r in cur.execute(
+        "SELECT * FROM infra.antecedentes_cruce").fetchall()}
+
     out: dict[int, ClasificacionCruce] = {}
     for r in cur.execute("SELECT cruce_id,nombre,tiene_semaforo,num_pistas_total "
                          "FROM infra.cruces ORDER BY cruce_id").fetchall():
         cid = r['cruce_id']
-        out[cid] = clasificar(
-            cid, r['nombre'], bool(r['tiene_semaforo']),
-            cid in con_prog, r['num_pistas_total'] or 2,
-            es_interseccion_clasica=cid in ids_interseccion_clasica,
-            en_corredor_coordinado=cid in ids_corredor)
+        a = ant.get(cid)
+        tiene_sem = bool(a['tiene_semaforo']) if a else bool(r['tiene_semaforo'])
+        evaluado = bool(a['evaluacion']) if a else False
+        principal = (a['via_principal'] if a else '') or ''
+        en_eje_interurbano = 'ruta 160' in principal.lower()
+
+        if not tiene_sem:
+            out[cid] = ClasificacionCruce(
+                cid, r['nombre'], 'B', MODELO_POR_TIPOLOGIA['B'],
+                admite_reconfiguracion=False, simulable_directo=False,
+                extrapolable=False,
+                motivo='No cuenta con semaforo de trafico: la integracion '
+                       'GPS-SCATS no tiene un controlador sobre el cual '
+                       'operar. El cruce se encuentra fuera del alcance del '
+                       'proyecto.')
+        elif evaluado:
+            tip = 'D' if cid in ids_corredor else 'A'
+            out[cid] = ClasificacionCruce(
+                cid, r['nombre'], tip, MODELO_POR_TIPOLOGIA[tip],
+                admite_reconfiguracion=True,
+                simulable_directo=cid in con_prog,
+                extrapolable=cid not in con_prog,
+                motivo='Cruce semaforizado sobre el eje interurbano '
+                       '(Ruta 160), con un movimiento lateral caracterizado '
+                       'que interactua directamente con el paso del tren. '
+                       'Reune las condiciones para la evaluacion.')
+        else:
+            # Semaforizado pero no evaluado: interseccion urbana o sin
+            # caracterizacion de flujos del movimiento de estudio.
+            if cid == 5:  # Daniel Belmar
+                motivo = ('El Puente Industrial se encuentra operativo desde '
+                          'fines de 2025 y la redistribucion de flujos '
+                          'asociada a su apertura ya esta reflejada en los '
+                          'aforos vigentes. En su etapa final este cruce se '
+                          'cerrara al paso vehicular, por lo que no procede '
+                          'evaluar un beneficio sostenido en el tiempo sobre '
+                          'una operacion que cesara. El flujo residual del '
+                          'cruce se redistribuira hacia los cruces vecinos al '
+                          'momento del cierre.')
+            elif en_eje_interurbano:
+                motivo = ('Interseccion sobre el eje interurbano cuya '
+                          'operacion responde a multiples movimientos de la '
+                          'trama vial adyacente. No se dispone de la '
+                          'caracterizacion de flujos del movimiento que '
+                          'interactua con el cruce ferroviario ni del '
+                          'detalle de los tiempos de verde asignados, por lo '
+                          'que su evaluacion requiere un levantamiento de '
+                          'informacion especifico.')
+            else:
+                motivo = ('Cruce emplazado sobre la trama vial urbana de '
+                          'Coronel (no sobre el eje interurbano). Opera como '
+                          'interseccion urbana con varios movimientos, donde '
+                          'los tiempos de verde responden a la coordinacion '
+                          'de la red local. No se dispone de la '
+                          'caracterizacion de flujos de los movimientos que '
+                          'interactuan con el cruce ferroviario, condicion '
+                          'necesaria para una evaluacion representativa.')
+            out[cid] = ClasificacionCruce(
+                cid, r['nombre'], 'C', MODELO_POR_TIPOLOGIA['C'],
+                admite_reconfiguracion=False, simulable_directo=False,
+                extrapolable=False, motivo=motivo)
     return out
 
 
