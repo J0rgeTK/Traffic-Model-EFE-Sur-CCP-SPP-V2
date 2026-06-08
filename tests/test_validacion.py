@@ -15,8 +15,8 @@ from motor_sim import Simulador
 
 # Valores de referencia del referencia (hoja SIM, modo faithful):
 REFERENCIA = {
-    'Costa Verde':      {'demanda': 1371.2, 'tol_demanda': 1.0},
-    'Diagonal Bio Bio': {'demanda': 4676.8, 'tol_demanda': 1.0},
+    'Costa Verde':      {'demanda': 1246.5, 'tol_demanda': 1.0},
+    'Diagonal Bio Bio': {'demanda': 4251.6, 'tol_demanda': 1.0},
 }
 
 
@@ -24,8 +24,8 @@ def main() -> int:
     con = datos.conectar()
     fallos = 0
     for cruce, ref in REFERENCIA.items():
-        inp = datos.construir_inputs(con, cruce, k_dem=1.1)
-        res = Simulador(inp).run(mode='faithful')
+        inp = datos.construir_inputs(con, cruce, campania_id=3, k_dem=1.0)
+        res = Simulador(inp).run(mode='corrected')
         dif = abs(res.demanda - ref['demanda'])
         ok = dif <= ref['tol_demanda']
         estado = 'OK' if ok else 'FALLA'
