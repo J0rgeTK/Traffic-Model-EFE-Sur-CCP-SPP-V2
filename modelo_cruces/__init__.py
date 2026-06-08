@@ -55,6 +55,7 @@ from .extrapolacion import (
     AnclaSimulada, CruceExtrapolado, caracterizar_anclas,
     extrapolar_cruce, estimar_capacidad_pico_ref,
 )
+from .composicion import ocupacion_efectiva_cruce, OCUPACION_BUS_DEFAULT
 from .proyecto_incremental import (
     EvaluacionIncremental, EjeBeneficio, evaluar_incremental,
     construir_ejes_beneficio, beneficio_valorizable_total,
@@ -104,4 +105,5 @@ __all__ = [
     'TIPOLOGIAS', 'MODELO_POR_TIPOLOGIA', 'TIPOLOGIAS_CON_BENEFICIO_PROYECTO',
     'EvaluacionIncremental', 'EjeBeneficio', 'evaluar_incremental',
     'construir_ejes_beneficio', 'beneficio_valorizable_total',
+    'ocupacion_efectiva_cruce', 'OCUPACION_BUS_DEFAULT',
 ]

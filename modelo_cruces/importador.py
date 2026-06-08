@@ -175,7 +175,7 @@ def _cargar_infraestructura_base(wb_orig, dir_data: Path, dir_schema: Path):
                 con.execute('INSERT INTO parametros_barrera (cruce_id,sentido,'
                             'tiempo_barrera_s,margen_pre_s,margen_post_s,'
                             'tiempo_alarma_s,fuente) VALUES (?,?,?,?,?,?,?)',
-                            (int(cid), sentido, t, 10, 10, alarma, 'BBDD xlsx'))
+                            (int(cid), sentido, t, 10, 10, alarma, 'Registro de referencia'))
         dist_tot = to_float_cl(bbdd.cell(row=r, column=cb['dist_total']).value)
         dist_des = to_float_cl(bbdd.cell(row=r, column=cb['dist_estacion']).value)
         for sentido, c1, c2 in (('CW', cb['tramo_cw_desde'], cb['tramo_cw_hasta']),
