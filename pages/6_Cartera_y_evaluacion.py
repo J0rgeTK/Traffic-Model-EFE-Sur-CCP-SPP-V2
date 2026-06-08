@@ -14,6 +14,7 @@ from modelo_cruces import (
     Simulador, evaluar_incremental, calcular_beneficio,
     caracterizar_anclas, extrapolar_cruce, estimar_capacidad_pico_ref,
     clasificar_catalogo, analizar_saturacion, OCUPACION_VEH_DEFAULT,
+    ocupacion_efectiva_cruce, OCUPACION_BUS_DEFAULT,
 )
 from modelo_cruces.catalogo import buscar, construir_catalogo
 import modelo_cruces.cartera as cartera_mod
@@ -34,8 +35,11 @@ with st.sidebar:
     costo_uf = st.number_input('Costo del proyecto (UF)', 5000, 30000, 15000, 500)
     uf_clp = st.number_input('Valor de la UF (CLP)', 30000.0, 50000.0, 40695.38, 0.01,
                              format='%.2f')
-    ocupacion = st.slider('Ocupación vehicular (pax/veh)', 1.0, 2.5,
+    ocupacion = st.slider('Ocupación vehículo liviano (pax/veh)', 1.0, 2.5,
                           float(OCUPACION_VEH_DEFAULT), 0.1)
+    incluir_buses = st.checkbox('Incluir buses (ocupación 20 pax/bus)', value=True)
+    ocup_bus = st.number_input('Ocupación por bus (pax)', 10.0, 50.0,
+                               float(OCUPACION_BUS_DEFAULT), 1.0) if incluir_buses else OCUPACION_BUS_DEFAULT
     factor_espera = st.slider('Ponderador VST de espera', 1.0, 2.0, 2.0, 0.5)
     crec = st.slider('Crecimiento demanda anual %', 0.0, 5.0, 2.0, 0.5) / 100
     horizonte = st.slider('Horizonte (años)', 10, 30, 20, 1)
@@ -87,10 +91,16 @@ for i, cid in enumerate(ids_sim):
     rr = Simulador(datos.inputs_de_variante(con, vr, campania_id=CAMP_ID, k_dem=1.0,
         hora_inicio_s=6*3600, hora_fin_s=24*3600)).run(mode='corrected', keep_series=True)
     ev = evaluar_incremental(rb.espera_vh, rr.espera_vh, rr.espera_pre_vh, nom)
-    # Beneficios de cada fase (valorizados con ocupación y VST configurados)
-    ben_reconfig = calcular_beneficio(ev.ahorro_reconfiguracion, ocupacion=ocupacion,
+    # Ocupación efectiva del cruce (considera buses si está activado)
+    if incluir_buses:
+        oc = ocupacion_efectiva_cruce(con, cid, CAMP_ID, ocupacion, ocup_bus)
+        ocup_cruce = oc['ocupacion_efectiva']
+    else:
+        ocup_cruce = ocupacion
+    # Beneficios de cada fase (valorizados con ocupación efectiva y VST configurados)
+    ben_reconfig = calcular_beneficio(ev.ahorro_reconfiguracion, ocupacion=ocup_cruce,
                                       factor_espera=factor_espera)
-    ben_gps = calcular_beneficio(ev.ahorro_gps_incremental, ocupacion=ocupacion,
+    ben_gps = calcular_beneficio(ev.ahorro_gps_incremental, ocupacion=ocup_cruce,
                                  factor_espera=factor_espera)
     tot_reconfig += ben_reconfig.beneficio_anual_clp
     tot_gps += ben_gps.beneficio_anual_clp
@@ -103,7 +113,7 @@ for i, cid in enumerate(ids_sim):
         balance_neto_vh=ev.ahorro_gps_incremental,
         beneficio_anual_clp=ben_gps.beneficio_anual_clp))
     items.append({'Cruce': nom, 'Grupo': g, 'Origen': 'Simulación',
-                  'x_max': round(sa.x_max, 2),
+                  'x_max': round(sa.x_max, 2), 'Ocup. (pax/veh)': round(ocup_cruce, 2),
                   'Ahorro reconfig. (v·h/día)': round(ev.ahorro_reconfiguracion, 1),
                   'Ahorro GPS (v·h/día)': round(ev.ahorro_gps_incremental, 1),
                   'Benef. reconfig. (CLP)': round(ben_reconfig.beneficio_anual_clp),
