@@ -278,3 +278,72 @@ def guardar_resultado(con, escenario_id: int, res: Resultados) -> None:
         res.reduccion_vh, res.reduccion_pct, res.reduccion_demora,
         res.reduccion_vh * alpha))
     con.commit()
+
+
+# ----------------------------------------------------------------------
+#  Evaluacion coherente de un cruce (correccion de saturacion unificada)
+# ----------------------------------------------------------------------
+def evaluar_cruce_corregido(con, nombre: str, campania_id: int = 3,
+                            n_carriles: float | None = None,
+                            hora_inicio_s: int = 6 * 3600,
+                            hora_fin_s: int = 24 * 3600) -> dict:
+    """Evalua un cruce aplicando la correccion de saturacion de forma
+    coherente entre las tres situaciones (actual, base optimizada, proyecto).
+
+    Criterio metodologico:
+      - El beneficio de la RECONFIGURACION se calcula como la diferencia de
+        esperas corregidas por la formulacion del HCM (Webster + Akcelik):
+        e_akcelik(actual) - e_akcelik(base). La correccion acota la
+        sobreestimacion del modelo de colas en regimen de sobre-saturacion
+        y distingue ambas situaciones por la capacidad efectiva resultante
+        de la recuperacion tras el cierre de barrera.
+      - El beneficio del GPS (pre-vaciado) es un efecto transitorio que la
+        formulacion estacionaria del HCM no representa; se obtiene de la
+        simulacion segundo a segundo (base con y sin pre-vaciado) y se
+        acota por el factor de saturacion del cruce, de modo que no se
+        sobreestime en cruces sobre-saturados.
+      - El numero de pistas del movimiento de estudio (n_carriles) se toma
+        del antecedente del cruce, no de un valor uniforme.
+    """
+    from modelo_cruces import Simulador, analizar_saturacion
+    from modelo_cruces.catalogo import buscar, construir_catalogo
+
+    cat = construir_catalogo(con)
+    c = buscar(cat, nombre)
+    if n_carriles is None:
+        row = con.execute(
+            "SELECT num_carriles_lateral FROM infra.cruces WHERE nombre = ?",
+            (nombre,)).fetchone()
+        n_carriles = (row['num_carriles_lateral'] if row else 2.0) or 2.0
+
+    vb = c.variante('base')
+    vr = c.variante('reconfiguracion') or vb
+    rb = Simulador(inputs_de_variante(con, vb, campania_id=campania_id, k_dem=1.0,
+        hora_inicio_s=hora_inicio_s, hora_fin_s=hora_fin_s)).run(
+        mode='corrected', keep_series=True)
+    rr = Simulador(inputs_de_variante(con, vr, campania_id=campania_id, k_dem=1.0,
+        hora_inicio_s=hora_inicio_s, hora_fin_s=hora_fin_s)).run(
+        mode='corrected', keep_series=True)
+
+    sa_act = analizar_saturacion(rb, n_carriles=n_carriles, usar_pre=False)
+    sa_sbo = analizar_saturacion(rr, n_carriles=n_carriles, usar_pre=False)
+
+    e_actual = sa_act.espera_akcelik_total_vh
+    e_sbo = sa_sbo.espera_akcelik_total_vh
+    ahorro_reconfig = max(0.0, e_actual - e_sbo)
+
+    factor = (min(1.0, sa_sbo.espera_akcelik_total_vh / sa_sbo.espera_motor_total_vh)
+              if sa_sbo.espera_motor_total_vh else 1.0)
+    ahorro_gps = max(0.0, rr.espera_vh - rr.espera_pre_vh) * factor
+    e_proyecto = max(0.0, e_sbo - ahorro_gps)
+
+    return {
+        'cruce': nombre, 'n_carriles': n_carriles, 'x_max': sa_act.x_max,
+        'metodo': sa_act.metodo_recomendado,
+        'espera_actual_vh': e_actual, 'espera_sbo_vh': e_sbo,
+        'espera_proyecto_vh': e_proyecto,
+        'ahorro_reconfiguracion_vh': ahorro_reconfig,
+        'ahorro_gps_incremental_vh': ahorro_gps,
+        'factor_saturacion': factor,
+        'espera_motor_actual_vh': sa_act.espera_motor_total_vh,
+    }
