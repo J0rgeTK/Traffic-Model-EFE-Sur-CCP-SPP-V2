@@ -85,37 +85,32 @@ items = []; anclas_raw = []
 tot_reconfig = 0.0; tot_gps = 0.0
 for i, cid in enumerate(ids_sim):
     nom = clasif[cid].nombre
-    c = buscar(cat, nom); vb = c.variante('base'); vr = c.variante('reconfiguracion') or vb
-    rb = Simulador(datos.inputs_de_variante(con, vb, campania_id=CAMP_ID, k_dem=1.0,
-        hora_inicio_s=6*3600, hora_fin_s=24*3600)).run(mode='corrected', keep_series=True)
-    rr = Simulador(datos.inputs_de_variante(con, vr, campania_id=CAMP_ID, k_dem=1.0,
-        hora_inicio_s=6*3600, hora_fin_s=24*3600)).run(mode='corrected', keep_series=True)
-    ev = evaluar_incremental(rb.espera_vh, rr.espera_vh, rr.espera_pre_vh, nom)
+    # Evaluación coherente con corrección de saturación (n_carriles real)
+    ec = datos.evaluar_cruce_corregido(con, nom, campania_id=CAMP_ID)
     # Ocupación efectiva del cruce (considera buses si está activado)
     if incluir_buses:
         oc = ocupacion_efectiva_cruce(con, cid, CAMP_ID, ocupacion, ocup_bus)
         ocup_cruce = oc['ocupacion_efectiva']
     else:
         ocup_cruce = ocupacion
-    # Beneficios de cada fase (valorizados con ocupación efectiva y VST configurados)
-    ben_reconfig = calcular_beneficio(ev.ahorro_reconfiguracion, ocupacion=ocup_cruce,
+    ben_reconfig = calcular_beneficio(ec['ahorro_reconfiguracion_vh'], ocupacion=ocup_cruce,
                                       factor_espera=factor_espera)
-    ben_gps = calcular_beneficio(ev.ahorro_gps_incremental, ocupacion=ocup_cruce,
+    ben_gps = calcular_beneficio(ec['ahorro_gps_incremental_vh'], ocupacion=ocup_cruce,
                                  factor_espera=factor_espera)
     tot_reconfig += ben_reconfig.beneficio_anual_clp
     tot_gps += ben_gps.beneficio_anual_clp
-    sa = analizar_saturacion(rb, n_carriles=2.0, usar_pre=False)
-    diario, pico = flujos_cruce(cid); bc = sa.banda_critica
+    diario, pico = flujos_cruce(cid)
     g = 'San Pedro' if 'Pedro' in comuna(cid) else 'Coronel'
+    cap_pico = pico / ec['x_max'] if ec['x_max'] > 0 else pico
     anclas_raw.append(dict(cruce=nom, cruce_id=cid, grupo=g,
-        flujo_lateral_diario=diario, flujo_pico_h=pico, n_carriles_lateral=2.0,
-        x_max=sa.x_max, capacidad_pico_h=bc.capacidad_h if bc else 900,
-        balance_neto_vh=ev.ahorro_gps_incremental,
+        flujo_lateral_diario=diario, flujo_pico_h=pico,
+        n_carriles_lateral=ec['n_carriles'], x_max=ec['x_max'],
+        capacidad_pico_h=cap_pico, balance_neto_vh=ec['ahorro_gps_incremental_vh'],
         beneficio_anual_clp=ben_gps.beneficio_anual_clp))
     items.append({'Cruce': nom, 'Grupo': g, 'Origen': 'Simulación',
-                  'x_max': round(sa.x_max, 2), 'Ocup. (pax/veh)': round(ocup_cruce, 2),
-                  'Ahorro reconfig. (v·h/día)': round(ev.ahorro_reconfiguracion, 1),
-                  'Ahorro GPS (v·h/día)': round(ev.ahorro_gps_incremental, 1),
+                  'x_max': round(ec['x_max'], 2), 'Ocup. (pax/veh)': round(ocup_cruce, 2),
+                  'Ahorro reconfig. (v·h/día)': round(ec['ahorro_reconfiguracion_vh'], 1),
+                  'Ahorro GPS (v·h/día)': round(ec['ahorro_gps_incremental_vh'], 1),
                   'Benef. reconfig. (CLP)': round(ben_reconfig.beneficio_anual_clp),
                   'Benef. GPS (CLP)': round(ben_gps.beneficio_anual_clp)})
     prog.progress((i+1)/max(1,len(ids_sim)), f'Evaluado {nom}')
