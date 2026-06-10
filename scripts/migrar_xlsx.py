@@ -1,13 +1,12 @@
 """
-Migracion fuente de referencia -> SQLite (CLI de compatibilidad)
-=================================================
-Combina dos fuentes:
-  1. fuente de referencia (Analisis_Cruces_L2_NOREPROG_*.xlsx): BBDD,
-     aforos vehiculares, eventos HCALL, itinerario.
-  2. Archivo v2 (base_programacion_actualizacion_modelo_cruces_v2.xlsx):
-     versiones, planes por cruce/tipo_dia, programacion_fases,
-     modelo operacional, declaracion del proyecto. Esta es la FUENTE
-     DE VERDAD para todo lo relacionado a programacion semaforica.
+Carga de datos a SQLite (utilidad de linea de comandos)
+=======================================================
+Carga los datos del corredor a las bases de datos del modelo desde los
+archivos fuente de datos (.xlsx):
+  1. Antecedentes, aforos vehiculares, eventos HCALL e itinerario.
+  2. Programacion semaforica: versiones, planes por cruce/tipo de dia,
+     programacion de fases y modelo operacional (fuente de verdad de la
+     programacion semaforica).
 
 Uso:  python scripts/migrar_xlsx.py
 """
