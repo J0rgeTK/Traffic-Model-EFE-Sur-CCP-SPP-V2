@@ -29,18 +29,29 @@ clasif = clasificar_catalogo(con, ids_corredor={2,4,6,7,8,10,11,12,14})
 camp = datos.listar_campanias(con)[0]
 CAMP_ID, CAMP_NOM = camp['campania_id'], camp['nombre']
 
+
+@st.cache_data(show_spinner=False)
+def evaluar_fisico(nombre: str, campania_id: int) -> dict:
+    """Evaluación física de un cruce (esperas), cacheada e independiente de
+    los parámetros económicos."""
+    c2 = datos.conectar()
+    try:
+        return datos.evaluar_cruce_corregido(c2, nombre, campania_id=campania_id)
+    finally:
+        c2.close()
+
 with st.sidebar:
     st.header('Parámetros de evaluación')
     st.caption(f'Flujos: {CAMP_NOM}.')
-    costo_uf = st.number_input('Costo del proyecto (UF)', 5000, 30000, 15000, 500)
+    costo_uf = st.number_input('Costo del proyecto (UF)', 5000, 30000, 14000, 500)
     uf_clp = st.number_input('Valor de la UF (CLP)', 30000.0, 50000.0, 40695.38, 0.01,
                              format='%.2f')
     ocupacion = st.slider('Ocupación vehículo liviano (pax/veh)', 1.0, 2.5,
                           float(OCUPACION_VEH_DEFAULT), 0.1)
-    incluir_buses = st.checkbox('Incluir buses (ocupación 20 pax/bus)', value=True)
+    incluir_buses = st.checkbox('Incluir buses', value=True)
     ocup_bus = st.number_input('Ocupación por bus (pax)', 10.0, 50.0,
-                               float(OCUPACION_BUS_DEFAULT), 1.0) if incluir_buses else OCUPACION_BUS_DEFAULT
-    factor_espera = st.slider('Ponderador VST de espera', 1.0, 2.0, 2.0, 0.5)
+                               25.0, 1.0) if incluir_buses else 25.0
+    factor_espera = st.slider('Ponderador VST de espera', 1.0, 2.0, 1.0, 0.5)
     crec = st.slider('Crecimiento demanda anual %', 0.0, 5.0, 2.0, 0.5) / 100
     horizonte = st.slider('Horizonte (años)', 10, 30, 20, 1)
     tsd = st.slider('Tasa social de descuento %', 4.0, 7.0, 5.5, 0.5) / 100
@@ -85,8 +96,9 @@ items = []; anclas_raw = []
 tot_reconfig = 0.0; tot_gps = 0.0
 for i, cid in enumerate(ids_sim):
     nom = clasif[cid].nombre
-    # Evaluación coherente con corrección de saturación (n_carriles real)
-    ec = datos.evaluar_cruce_corregido(con, nom, campania_id=CAMP_ID)
+    # Evaluación coherente con corrección de saturación (n_carriles real),
+    # cacheada: los parámetros económicos no obligan a re-simular.
+    ec = evaluar_fisico(nom, CAMP_ID)
     # Ocupación efectiva del cruce (considera buses si está activado)
     if incluir_buses:
         oc = ocupacion_efectiva_cruce(con, cid, CAMP_ID, ocupacion, ocup_bus)

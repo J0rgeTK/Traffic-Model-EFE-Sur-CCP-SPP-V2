@@ -1,11 +1,9 @@
 """Sección 5 — Simulación de la operación de un cruce."""
-import numpy as np
 import pandas as pd
 import streamlit as st
 
 import datos
-from modelo_cruces import Simulador, analizar_saturacion, calcular_beneficio
-from modelo_cruces.catalogo import buscar, construir_catalogo
+from modelo_cruces import calcular_beneficio
 
 st.set_page_config(page_title='Simulación', page_icon='🚦', layout='wide')
 st.title('5 · Simulación de la operación de un cruce')
@@ -13,19 +11,30 @@ st.caption('Reproduce la operación semáforo–barrera y cuantifica la espera e
            'la vía lateral en tres situaciones, con corrección de saturación.')
 
 con = datos.conectar()
-cat = {c.cruce: c for c in datos.catalogo_simulable(con)}
+cruces = [c.cruce for c in datos.catalogo_simulable(con)]
 camp = datos.listar_campanias(con)[0]
 CAMP_ID, CAMP_NOM = camp['campania_id'], camp['nombre']
+con.close()
+
+
+@st.cache_data(show_spinner='Simulando el cruce…')
+def evaluar(cruce: str, campania_id: int) -> dict:
+    """Evalúa un cruce una sola vez y cachea el resultado (serializable)."""
+    con = datos.conectar()
+    try:
+        return datos.evaluar_cruce_corregido(con, cruce, campania_id=campania_id)
+    finally:
+        con.close()
+
 
 with st.sidebar:
-    cruce = st.selectbox('Cruce', list(cat))
+    cruce = st.selectbox('Cruce', cruces)
     ocupacion = st.slider('Ocupación vehículo liviano (pax/veh)', 1.0, 2.5, 1.5, 0.1)
     st.caption(f'Flujos: {CAMP_NOM}.')
     st.caption('Usa la programación semafórica, el número de pistas del '
                'movimiento de estudio y el itinerario ferroviario del cruce.')
 
-# Evaluación coherente (misma lógica que la cartera)
-ec = datos.evaluar_cruce_corregido(con, cruce, campania_id=CAMP_ID)
+ec = evaluar(cruce, CAMP_ID)
 
 st.subheader(f'Resultados — {cruce}')
 c = st.columns(3)
@@ -47,45 +56,36 @@ beneficio atribuible al proyecto es el incremental del GPS sobre la base:
 reconfiguración es **{ec['ahorro_reconfiguracion_vh']:,.1f} v·h/día**.
 """)
 
-# Régimen de saturación
-vb = cat[cruce].variante('base')
-rb = Simulador(datos.inputs_de_variante(con, vb, campania_id=CAMP_ID, k_dem=1.0,
-    hora_inicio_s=6*3600, hora_fin_s=24*3600)).run(mode='corrected', keep_series=True)
-sat = analizar_saturacion(rb, n_carriles=ec['n_carriles'], usar_pre=False)
+# Régimen de saturación (reutiliza las bandas ya calculadas)
 st.subheader('Régimen de saturación por banda horaria')
-if sat.banda_critica:
-    st.caption(f'Banda más cargada: {sat.banda_critica.hora_inicio:02.0f}:00–'
-               f'{sat.banda_critica.hora_fin:02.0f}:00, grado de saturación '
-               f'x = {sat.x_max:.2f} · método: {sat.metodo_recomendado}')
-banda_df = pd.DataFrame([{
-    'Hora': f'{b.hora_inicio:02.0f}–{b.hora_fin:02.0f}h',
-    'Flujo (v/h)': round(b.flujo_h), 'Capacidad (v/h)': round(b.capacidad_h),
-    'Saturación x': round(b.x, 2), 'Régimen': b.metodo.split(' (')[0],
-} for b in sat.bandas])
-st.dataframe(banda_df, use_container_width=True, hide_index=True)
+if ec['banda_critica']:
+    st.caption(f'Banda más cargada: {ec["banda_critica"][0]:02.0f}:00–'
+               f'{ec["banda_critica"][1]:02.0f}:00, grado de saturación '
+               f'x = {ec["x_max"]:.2f} · método: {ec["metodo"]}')
+if ec['bandas']:
+    banda_df = pd.DataFrame([{
+        'Hora': f'{b["hora_inicio"]:02.0f}–{b["hora_fin"]:02.0f}h',
+        'Flujo (v/h)': round(b['flujo_h']), 'Capacidad (v/h)': round(b['capacidad_h']),
+        'Saturación x': round(b['x'], 2), 'Régimen': b['metodo'].split(' (')[0],
+    } for b in ec['bandas']])
+    st.dataframe(banda_df, use_container_width=True, hide_index=True)
 
 # Beneficio incremental valorizado
-ben = calcular_beneficio(ec['ahorro_gps_incremental_vh'], ocupacion=ocupacion, factor_espera=2.0)
+ben = calcular_beneficio(ec['ahorro_gps_incremental_vh'], ocupacion=ocupacion,
+                         factor_espera=1.0)
 st.subheader('Beneficio incremental del proyecto en este cruce')
 c = st.columns(2)
 c[0].metric('Ahorro anual', f'{ben.ahorro_anual_veh_h:,.0f} v·h/año')
 c[1].metric('Beneficio social anual', f'CLP {ben.beneficio_anual_clp:,.0f}',
-            'valor social del tiempo de espera')
+            'valor social del tiempo')
 
-# Evolución de la cola
-st.subheader('Cola en la vía lateral a lo largo del día')
-vr = cat[cruce].variante('reconfiguracion') or vb
-rr = Simulador(datos.inputs_de_variante(con, vr, campania_id=CAMP_ID, k_dem=1.0,
-    hora_inicio_s=6*3600, hora_fin_s=24*3600)).run(mode='corrected', keep_series=True)
-sb, sr = rb.series, rr.series
-if sb and sr and 'C' in sr:
-    Cb = np.asarray(sb['C']) / 3600
-    chart_df = pd.DataFrame({'hora': Cb,
-        'situación actual': np.asarray(sb['Q']),
-        'base optimizada': np.asarray(sr['Q']),
-        'con proyecto': np.asarray(sr['Qpre'])}).set_index('hora')
+# Evolución de la cola (reutiliza las series ya calculadas)
+if ec['serie_hora']:
+    st.subheader('Cola en la vía lateral a lo largo del día')
+    chart_df = pd.DataFrame({'hora': ec['serie_hora'],
+        'situación actual': ec['serie_q_actual'],
+        'base optimizada': ec['serie_q_sbo'],
+        'con proyecto': ec['serie_q_proyecto']}).set_index('hora')
     st.line_chart(chart_df)
     st.caption('Las esperas mostradas arriba están corregidas por saturación; '
                'la curva ilustra la dinámica de la cola simulada.')
-
-con.close()

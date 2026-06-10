@@ -21,16 +21,21 @@ st.subheader('Parámetros de evaluación social')
 st.dataframe(pd.DataFrame([
     {'Parámetro': 'Valor social del tiempo (viaje, urbano)',
      'Valor': f'{VST_URBANO_VIAJE_2026:,} CLP/h-pax',
-     'Fuente': 'Informe de Precios Sociales 2026 (MDSF)'},
-    {'Parámetro': 'Valor social del tiempo de espera (detenido)',
-     'Valor': f'{VST_URBANO_ESPERA_2026:,} CLP/h-pax',
-     'Fuente': 'Precios Sociales 2026 — ponderador de espera (×2 sobre viaje)'},
+     'Fuente': 'Informe de Precios Sociales 2026 (MDSF) — valor base de cálculo'},
+    {'Parámetro': 'Ponderador del tiempo de espera (detenido)',
+     'Valor': '1,0 (configurable hasta 2,0)',
+     'Fuente': 'Por defecto conservador: el tiempo detenido se valora como el '
+     'de viaje. Con 2,0 alcanza el VST de espera del MDSF '
+     f'({VST_URBANO_ESPERA_2026:,} CLP/h-pax)'},
     {'Parámetro': 'Tasa social de descuento',
      'Valor': f'{TASA_SOCIAL_DESCUENTO_2026*100:.1f} %',
      'Fuente': 'Informe de Precios Sociales 2026 (MDSF)'},
     {'Parámetro': 'Horizonte de evaluación',
      'Valor': f'{HORIZONTE_SNI_DEFAULT} años',
      'Fuente': 'Captura ≥2 ciclos de reinversión de equipos electrónicos'},
+    {'Parámetro': 'Costo de inversión del proyecto',
+     'Valor': '14.000 UF (referencial)',
+     'Fuente': 'Integración GPS–SCATS; configurable en la evaluación'},
     {'Parámetro': 'Días laborales por año',
      'Valor': f'{DIAS_LABORALES_AÑO}',
      'Fuente': 'Anualización estándar SNI'},
@@ -48,9 +53,9 @@ st.dataframe(pd.DataFrame([
     {'Parámetro': 'Headway de saturación', 'Valor': '2,0 s/veh',
      'Consideración': 'Tiempo entre vehículos consecutivos al descargar cola; '
      'calibrable con medición de campo.'},
-    {'Parámetro': 'Ocupación vehicular', 'Valor': f'{OCUPACION_VEH_DEFAULT} pax/veh',
-     'Consideración': 'Supuesto conservador (todos los vehículos livianos); '
-     'taxibuses y buses elevan la ocupación real.'},
+    {'Parámetro': 'Ocupación vehicular (livianos)', 'Valor': f'{OCUPACION_VEH_DEFAULT} pax/veh',
+     'Consideración': 'Base para vehículos livianos; la presencia de buses '
+     '(25 pax/bus) eleva la ocupación efectiva de cada cruce.'},
     {'Parámetro': 'Consumo en ralentí', 'Valor': f'{CONSUMO_RALENTI_L_H} L/h',
      'Consideración': 'Para externalidad de combustible en cola.'},
     {'Parámetro': 'Precio social combustible',
