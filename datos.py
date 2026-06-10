@@ -337,6 +337,22 @@ def evaluar_cruce_corregido(con, nombre: str, campania_id: int = 3,
     ahorro_gps = max(0.0, rr.espera_vh - rr.espera_pre_vh) * factor
     e_proyecto = max(0.0, e_sbo - ahorro_gps)
 
+    # Series de cola submuestreadas (cada 15 s) y bandas, para reutilizar
+    # en la interfaz sin volver a simular.
+    serie_hora = serie_qa = serie_qs = serie_qp = []
+    if rb.series and rr.series and 'C' in rb.series:
+        paso = 15
+        C = rb.series['C']; Qa = rb.series['Q']
+        Qs = rr.series['Q']; Qp = rr.series.get('Qpre', rr.series['Q'])
+        serie_hora = [C[i] / 3600 for i in range(0, len(C), paso)]
+        serie_qa = [Qa[i] for i in range(0, len(Qa), paso)]
+        serie_qs = [Qs[i] for i in range(0, len(Qs), paso)]
+        serie_qp = [Qp[i] for i in range(0, len(Qp), paso)]
+    bandas = [{'hora_inicio': b.hora_inicio, 'hora_fin': b.hora_fin,
+               'flujo_h': b.flujo_h, 'capacidad_h': b.capacidad_h,
+               'x': b.x, 'metodo': b.metodo} for b in sa_act.bandas]
+    bc = sa_act.banda_critica
+
     return {
         'cruce': nombre, 'n_carriles': n_carriles, 'x_max': sa_act.x_max,
         'metodo': sa_act.metodo_recomendado,
@@ -346,4 +362,8 @@ def evaluar_cruce_corregido(con, nombre: str, campania_id: int = 3,
         'ahorro_gps_incremental_vh': ahorro_gps,
         'factor_saturacion': factor,
         'espera_motor_actual_vh': sa_act.espera_motor_total_vh,
+        'serie_hora': serie_hora, 'serie_q_actual': serie_qa,
+        'serie_q_sbo': serie_qs, 'serie_q_proyecto': serie_qp,
+        'bandas': bandas,
+        'banda_critica': (bc.hora_inicio, bc.hora_fin) if bc else None,
     }
