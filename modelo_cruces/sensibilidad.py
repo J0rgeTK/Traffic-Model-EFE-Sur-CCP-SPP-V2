@@ -125,7 +125,7 @@ def sensibilidad_van_cruce(con, cruce: str, valores_base: dict | None = None,
         'k_dem': 1.10, 'flujo_principal_h': 1500, 'n_carriles_lateral': 2,
         'n_carriles_principal': 2, 'capex_clp': 300e6, 'opex_anual_clp': 15e6,
         'tasa_descuento': 0.055, 'crecimiento_demanda': 0.02,
-        'horizonte': 15, 'h_saturacion': 2.0,
+        'horizonte': 20, 'h_saturacion': 2.0,
         'consumo_ralenti_l_h': 1.10, 'ocupacion_veh': 1.5,
     }
     valores_base = valores_base or base_defaults

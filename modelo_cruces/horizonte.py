@@ -8,7 +8,7 @@ Dos modulos pequenos que cierran brechas del analisis critico:
    por desviaciones del itinerario ferroviario, GPS, condiciones de via.
    Esto evalua sensibilidad operacional del proyecto.
 
-2. evaluar_horizonte: VAN/TIR/B-C a 15 anos con tasa social MDS 2026
+2. evaluar_horizonte: VAN/TIR/B-C a 20 anos con tasa social MDS 2026
    (5.5 %) sobre un beneficio anual creciente segun tasa de demanda.
 
 Estos son los dos modulos finales que cierran las brechas del informe
@@ -84,10 +84,10 @@ def correr_jitter_hcall(simulador, inp, n_rep: int = 30,
 
 
 # ============================================================
-#  Evaluacion social — horizonte 15 anos
+#  Evaluacion social — horizonte 20 anos
 # ============================================================
 TASA_SOCIAL_DESCUENTO_2026 = 0.055    # 5,5 % anual (MDS 2026)
-HORIZONTE_SNI_DEFAULT = 15            # anos
+HORIZONTE_SNI_DEFAULT = 20            # anos
 TASA_CRECIMIENTO_DEMANDA_DEFAULT = 0.02   # 2 % anual urbano Concepcion
 
 

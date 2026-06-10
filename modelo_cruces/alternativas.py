@@ -32,7 +32,7 @@ class Alternativa:
     opex_anual_clp: float
     beneficio_anual_clp: float
     factibilidad: str       # 'alta' | 'media' | 'baja'
-    horizonte_anios: int = 15
+    horizonte_anios: int = 20
     # Calculados al evaluar:
     van_clp: float = 0.0
     tir: float | None = None
