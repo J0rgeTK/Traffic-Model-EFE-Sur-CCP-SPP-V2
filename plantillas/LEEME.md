@@ -1,7 +1,7 @@
 # Plantilla canónica de insumos
 
 CSV planos, con encabezados semánticos, **independientes de la estructura
-del Excel**. No usan celdas fijas ni fórmulas y se pueden validar antes de
+de las bases**. No usan celdas fijas ni fórmulas y se pueden validar antes de
 cargar a SQLite.
 
 Se generan/actualizan con:
@@ -12,7 +12,7 @@ python scripts/exportar_plantillas.py
 
 ## Reglas generales
 
-- Tiempos en **segundos enteros del día** (`06:00` = `21600`), no en formato hora-Excel.
+- Tiempos en **segundos enteros del día** (`06:00` = `21600`), no en formato de hora del reloj.
 - Flujos vehiculares **crudos**, sin el factor `k_dem` (el motor lo aplica).
 - Relaciones por **id explícito** (o nombre), nunca por posición de fila.
 - Una fila = un hecho: una fase, una banda de aforo, un evento HCALL.
