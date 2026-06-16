@@ -215,4 +215,92 @@ cols = st.columns(3)
 for i, a in enumerate((0, 10, 20)):
     cols[i].metric(f'Año {a}', f'CLP {benef_anual*(1+crec)**a/1e6:,.0f} MM')
 
+# ----------------------------------------------------------------------
+#  Evaluación social en formato SNI (flujo año por año, en UF)
+# ----------------------------------------------------------------------
+st.divider()
+st.subheader('Evaluación social del proyecto (UF)')
+st.caption('Flujo del beneficio por ahorro de tiempo y de la inversión del '
+           'proyecto GPS–SCATS a lo largo del horizonte, en unidades de '
+           'fomento. El ahorro de tiempo es el beneficio que el modelo '
+           'cuantifica a partir de la simulación.')
+
+a_uf = lambda clp: clp / uf_clp                   # CLP -> UF
+inv_uf = costo_uf
+reinv_uf = inv_uf * 0.20
+resid_uf = inv_uf * 0.13
+benef_tiempo_uf = a_uf(benef_anual)               # ahorro de tiempo (UF/año base)
+
+filas = []
+flujo_social = [-inv_uf]
+filas.append({'Año': 0, 'Inversión': f'-{inv_uf:,.0f}',
+              'Beneficio tiempo': '', 'Total': f'-{inv_uf:,.0f}'})
+for t in range(1, horizonte + 1):
+    ben = benef_tiempo_uf * (1 + crec) ** (t - 1)
+    inv = 0.0
+    if t == 10: inv -= reinv_uf
+    if t == horizonte: inv += resid_uf
+    total = ben + inv
+    flujo_social.append(total)
+    filas.append({'Año': t, 'Inversión': f'{inv:,.0f}' if inv else '',
+                  'Beneficio tiempo': f'{ben:,.0f}', 'Total': f'{total:,.0f}'})
+
+van_uf = sum(f / (1 + tsd) ** i for i, f in enumerate(flujo_social))
+lo, hi, tir_s = -0.99, 5.0, None
+for _ in range(200):
+    m = (lo + hi) / 2
+    v = sum(f / (1 + m) ** i for i, f in enumerate(flujo_social))
+    if abs(v) < 0.5: tir_s = m; break
+    lo, hi = (m, hi) if v > 0 else (lo, m)
+else:
+    tir_s = m
+
+st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True, height=380)
+c = st.columns(2)
+c[0].metric(f'VAN ({tsd*100:.1f}%)', f'{van_uf:,.0f} UF')
+c[1].metric('TIR', f'{tir_s*100:.1f} %')
+st.caption('Beneficio = ahorro de tiempo de espera valorizado con el VST. La '
+           'Inversión incluye la reinversión de equipos en el año 10 y el valor '
+           'residual al cierre del horizonte. El modelo no cuantifica beneficios '
+           'por combustible, emisiones ni accidentes: requerirían factores y '
+           'datos de siniestralidad propios del corredor que no forman parte '
+           'de esta evaluación.')
+
+# ----------------------------------------------------------------------
+#  Análisis de sensibilidad (Inversión x Beneficios)
+# ----------------------------------------------------------------------
+st.subheader('Análisis de sensibilidad')
+st.caption('Variación del VAN y la TIR ante cambios de ±20% en la inversión '
+           'y en el beneficio por ahorro de tiempo del proyecto.')
+
+def van_tir(f_inv, f_ben):
+    inv = inv_uf * (1 + f_inv)
+    rein = inv * 0.20; resid = inv * 0.13
+    fl = [-inv]
+    for t in range(1, horizonte + 1):
+        b = benef_tiempo_uf * (1 + crec) ** (t - 1) * (1 + f_ben)
+        if t == 10: b -= rein
+        if t == horizonte: b += resid
+        fl.append(b)
+    van = sum(x / (1 + tsd) ** i for i, x in enumerate(fl))
+    lo, hi = -0.99, 5.0
+    for _ in range(200):
+        mm = (lo + hi) / 2
+        vv = sum(x / (1 + mm) ** i for i, x in enumerate(fl))
+        if abs(vv) < 0.5: break
+        lo, hi = (mm, hi) if vv > 0 else (lo, mm)
+    return van, mm
+
+niveles = [(-0.20, '-20%'), (0.0, '0%'), (0.20, '+20%')]
+filas_s = []
+for fi, li in niveles:
+    for fb, lb in niveles:
+        van, tir_c = van_tir(fi, fb)
+        filas_s.append({'Inversión': li, 'Beneficios': lb,
+                        'VAN (UF)': f'{van:,.0f}', 'TIR (%)': f'{tir_c*100:.1f}%'})
+st.dataframe(pd.DataFrame(filas_s), use_container_width=True, hide_index=True)
+st.caption('La combinación más adversa (inversión +20%, beneficios −20%) es la '
+           'prueba de robustez del proyecto: un VAN que se mantiene positivo en '
+           'ese escenario indica una rentabilidad social sólida.')
+
 con.close()
