@@ -173,7 +173,7 @@ for i, (g, v) in enumerate(por_grupo.items()):
 cols[-1].metric('Total proyecto', f'CLP {benef_anual/1e6:,.0f} MM/año')
 
 # Indicadores económicos (sobre el beneficio incremental del proyecto)
-st.subheader('Indicadores de rentabilidad social del proyecto')
+st.subheader('Indicadores de rentabilidad social — Proyecto GPS–SCATS (incremental)')
 capex = costo_uf * uf_clp
 reinv10 = capex * 0.20
 vr20 = capex * 0.13
@@ -219,11 +219,12 @@ for i, a in enumerate((0, 10, 20)):
 #  Evaluación social en formato SNI (flujo año por año, en UF)
 # ----------------------------------------------------------------------
 st.divider()
-st.subheader('Evaluación social del proyecto (UF)')
-st.caption('Flujo del beneficio por ahorro de tiempo y de la inversión del '
-           'proyecto GPS–SCATS a lo largo del horizonte, en unidades de '
-           'fomento. El ahorro de tiempo es el beneficio que el modelo '
-           'cuantifica a partir de la simulación.')
+st.subheader('Evaluación social del proyecto GPS–SCATS (incremental, UF)')
+st.caption('Flujo del beneficio incremental del proyecto GPS–SCATS —el ahorro '
+           'de tiempo atribuible al pre-vaciado, sobre la base ya '
+           f'reconfigurada (CLP {benef_anual/1e6:,.0f} MM/año)— y de su '
+           'inversión, en unidades de fomento. **No** incluye el beneficio de '
+           'la reconfiguración, que pertenece a la situación sin proyecto.')
 
 a_uf = lambda clp: clp / uf_clp                   # CLP -> UF
 inv_uf = costo_uf
@@ -270,8 +271,9 @@ st.caption('Beneficio = ahorro de tiempo de espera valorizado con el VST. La '
 #  Análisis de sensibilidad (Inversión x Beneficios)
 # ----------------------------------------------------------------------
 st.subheader('Análisis de sensibilidad')
-st.caption('Variación del VAN y la TIR ante cambios de ±20% en la inversión '
-           'y en el beneficio por ahorro de tiempo del proyecto.')
+st.caption('Variación del VAN y la TIR del proyecto GPS–SCATS ante cambios de '
+           '±20% en la inversión y en su beneficio incremental por ahorro de '
+           'tiempo (no en el de la iniciativa completa).')
 
 def van_tir(f_inv, f_ben):
     inv = inv_uf * (1 + f_inv)
