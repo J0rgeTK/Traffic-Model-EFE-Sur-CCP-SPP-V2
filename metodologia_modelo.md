@@ -195,9 +195,9 @@ La tasa de descuento queda parametrizada en `data/tarifas_biotren/parametros_sub
 
 El grupo estudiante incluye sólo `media_superior`.
 
-Subsidio_estudiante = Σ(MOD_media_superior_ij × max(0, tarifa_estudiante_BT_sin_subsidio_ij - tarifa_estudiante_pagada_ij)), con diagonal en cero.
+Subsidio_estudiante = Ingreso_teorico_estudiante_sin_subsidio_sin_diagonal - Venta_media_superior_con_diagonal.
 
-La venta de pasajes de `media_superior` se calcula con la tarifa estudiante pagada de `data/od_biotren/processed/tarifas_2026_por_tipo_long.csv`. El subsidio estudiante cubre sólo la brecha tarifaria frente a `data/tarifas_biotren/tarifa_estudiante_bt_sin_subsidio_long.csv`; no suma la tarifa sin subsidio completa como subsidio. No se imputan automáticamente tarifas faltantes, las brechas de cobertura se reportan como advertencias y el cálculo no modifica la afluencia proyectada.
+Donde `Ingreso_teorico_estudiante_sin_subsidio_sin_diagonal = Σ_{i≠j}(MOD_media_superior_ij × tarifa_estudiante_BT_sin_subsidio_ij)` y `Venta_media_superior_con_diagonal = Σ_{todos i,j}(MOD_media_superior_ij × tarifa_estudiante_pagada_ij)`. La matriz estudiante sin subsidio proviene del presupuesto base `Presupuesto 2026 Biotren v4.xlsx`, hoja `Tarifa Escolar Feb-sep`, bloque `Estudiante Sin subsidio 2026`, normalizada en `data/tarifas_biotren/tarifa_estudiante_bt_sin_subsidio_long.csv`. No debe usarse como fórmula final la brecha OD `max(0, tarifa_sin_subsidio - tarifa_pagada)` por par OD. No se imputan automáticamente tarifas faltantes, las brechas de cobertura se reportan como advertencias y el cálculo no modifica la afluencia proyectada.
 
 ### 10.3 Total
 
@@ -256,23 +256,45 @@ Las bandas se calculan sobre la proyección base 2027 vigente:
 
 El modelo genera controles de consistencia mensual/anual, feriados por servicio, sensibilidad de oferta, conservación de totales OD de Biotren, suma de participaciones MOD por línea, consistencia por tipo de tarjeta, ingresos sólo para tipos con tarifa aplicable, subsidio normal y estudiante con controles de cobertura, backtesting diagnóstico y bandas de incertidumbre sin valores negativos.
 
-La sección **Validación histórica** de Streamlit muestra los resultados agregados, el detalle observado vs estimado y las advertencias. El proceso se ejecuta en memoria: no genera archivos binarios, no modifica outputs masivos y no altera `data/od_biotren/processed/`.
+- el backtesting es diagnóstico y no modifica resultados del escenario 2027;
+- la comparación se limita a meses con observación histórica disponible;
+- meses incompletos no se descartan automáticamente: se reporta cobertura para su interpretación;
+- servicios con baja afluencia pueden mostrar MAPE elevado por denominadores pequeños;
+- meses con observado cero no entran al MAPE y se contabilizan explícitamente;
+- WMAPE es la referencia agregada principal para comparar desempeño por servicio y sistema;
+- las estimaciones usan la lógica vigente del motor mensual-elástico y pueden incorporar parámetros calibrados con información posterior al periodo evaluado;
+- los feriados parametrizados explícitamente corresponden al horizonte operacional 2027, por lo que la lectura histórica debe interpretarse como prueba de consistencia mensual y no como reconstrucción operacional diaria completa;
+- el proceso se ejecuta en memoria, sin generar archivos binarios, sin modificar outputs masivos y sin tocar `data/od_biotren/processed/`.
 
-## Escenario 2027 recalibrado
+## Recalibración operacional del escenario 2027
 
-El escenario 2027 incorpora una recalibración operacional trazable sin modificar los datos históricos procesados. Biotren aplica una baja progresiva del total mensual, una afectación operacional adicional en Línea 2 durante fines de semana de enero-febrero y un ajuste residual distribuido en meses laborales, de modo que la demanda anual se ubica en el entorno de 12,7 millones de pasajeros.
+La proyección 2027 se presenta como escenario recalibrado a partir de nuevos supuestos operacionales. La recalibración se aplica después del motor mensual-elástico y antes de las distribuciones OD, ingresos por venta de pasajes y bandas de incertidumbre, manteniendo separadas la proyección base, el backtesting histórico y el módulo de incertidumbre.
 
-Tren Araucanía se calcula por componente de servicio. Victoria-Temuco opera con 11 servicios de lunes a viernes durante todo 2027, Temuco-Pitrufquén se mantiene separado y Claret conserva su tratamiento escolar específico de marzo a diciembre. El perfil mensual incluye diagnóstico y suavizamiento de marzo cuando corresponde para evitar concentración artificial; posteriormente se refuerza mayo por coherencia con el bloque marzo-mayo 2026 y se aplica un ajuste marginal al resto de los meses, preservando el comportamiento mensual observado en 2025.
+### Biotren
 
-Llanquihue-Puerto Montt se calibra con un promedio de día laboral cercano a 1.500 pasajeros entre marzo y diciembre, permitiendo variación mensual por estacionalidad y calendario. Enero y febrero incorporan una reducción por menor efecto novedad del servicio y no se fuerzan al promedio laboral de meses ancla.
+Biotren incorpora una validación operacional por ocupación promedio general. Primero se calcula una trayectoria mensual con oferta vigente, calendario operacional, estacionalidad y afectación de Línea 2 en fines de semana de enero y febrero. Luego se evalúan los servicios comerciales mensuales distinguiendo que los acoplados L2 son capacidad efectiva y no frecuencia adicional. Enero y febrero se contrastan con el comportamiento histórico reciente; los demás meses se ajustan según brechas de ocupación y oferta mensual. La distribución por línea MOD, la distribución OD por tipo de tarjeta y los ingresos por venta de pasajes se recalculan desde el total mensual ajustado. La base referencial de subsidio continúa sin cálculo de montos.
 
-Laja-Talcahuano no recibe una modificación específica nueva en la recalibración y mantiene su regla operacional de feriados como fin de semana. Las bandas de incertidumbre se calculan sobre la nueva proyección base 2027, conservando las métricas históricas de WMAPE y sesgo del backtesting.
+### Tren Araucanía
 
-## Referencias históricas y cierre 2026 para visualización
+Tren Araucanía mantiene una metodología por tramo: Temuco-Victoria, Temuco-Pitrufquén y Claret. Victoria-Temuco opera con 11 servicios de lunes a viernes durante 2027. Claret conserva su carácter escolar y sólo aporta en marzo-diciembre. El perfil mensual combina patrón histórico, calendario operacional, oferta mensual, componente escolar y suavizamiento de marzo cuando el diagnóstico lo identifica como outlier respecto del promedio abril-diciembre y del promedio anual.
 
-Los archivos normalizados ubicados en `data/referencias_cierre_2026/` se utilizan como referencia visual para los diagramas de evolución histórica, cierre 2026 y proyección 2027. El tratamiento metodológico distingue explícitamente tres categorías: **Histórico observado**, **Cierre 2026 estimado** y **Proyección 2027 modelo**.
+### Llanquihue-Puerto Montt
 
-El cierre 2026 estimado no recalibra el motor mensual-elástico, no modifica el escenario operacional 2027 vigente y no altera los insumos procesados de `data/od_biotren/processed/`. Su función es mejorar la lectura histórica, la trazabilidad visual del diagrama de proyección y la comparación entre la trayectoria observada, el cierre anual estimado y el resultado operacional vigente del modelo.
+Llanquihue-Puerto Montt se calibra con el indicador de pasajeros por día laboral operacional. Para marzo-diciembre se aproxima al entorno de 1.500 pasajeros por día laboral, permitiendo variaciones por estacionalidad y cantidad de días laborales. Enero y febrero reciben factores de reducción por menor efecto novedad y no usan la restricción de 1.500 como regla rígida.
+
+### Laja-Talcahuano
+
+Laja-Talcahuano no recibe ajuste específico nuevo dentro de la recalibración. El servicio mantiene su tratamiento vigente, incluida la operación de feriados con regla de fin de semana cuando corresponde.
+
+### Incertidumbre
+
+Las bandas bajo/base/alto se recalculan sobre la nueva base 2027. El WMAPE y el sesgo provienen del backtesting histórico y no modifican su metodología; el ajuste por sesgo se interpreta como sensibilidad diagnóstica sobre la base recalibrada y se controla que no genere valores negativos.
+
+## Referencias históricas normalizadas y cierre 2026 estimado
+
+Los CSV normalizados de `data/referencias_cierre_2026/` se incorporan como insumo auxiliar de visualización histórica. La lectura separa **Histórico observado**, **Cierre 2026 estimado** y **Proyección 2027 modelo**, evitando interpretar el cierre 2026 como observado definitivo.
+
+Estos archivos no forman parte de la calibración del motor de proyección, no modifican elasticidades, factores operacionales ni resultados del escenario 2027 vigente. Se usan para presentar la trayectoria anual y mensual de Biotren, Laja-Talcahuano y Tren Araucanía, manteniendo la proyección 2027 como resultado del modelo operacional vigente.
 
 ### Redistribución mensual Biotren 2027 por participación anual
 
