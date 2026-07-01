@@ -1,283 +1,224 @@
-# Metodología del modelo predictivo de afluencia EFE Sur 2027
+# Modelo de evaluación — Semaforización de cruces ferroviarios, Servicio Biotrén Línea 2
 
-## 1. Propósito y alcance del modelo
+Programa de evaluación técnico-económica del proyecto de integración
+**GPS–SCATS** al control semafórico de los cruces a nivel del Servicio
+Biotrén, Línea 2, en el Gran Concepción (San Pedro de la Paz y Coronel,
+Región del Biobío). El programa simula la operación de cada cruce segundo a
+segundo, corrige los resultados con la formulación de saturación del
+*Highway Capacity Manual*, valoriza el ahorro de tiempo con los precios
+sociales del Sistema Nacional de Inversiones (SNI) y entrega los
+indicadores de rentabilidad social de la cartera.
 
-El modelo estima la afluencia mensual proyectada de pasajeros para los servicios de EFE Sur durante 2027. Su objetivo es apoyar planificación operacional y evaluación de escenarios de oferta por servicio, unidad operacional, mes y tipo de día.
+Está construido en Python con una interfaz **Streamlit** de seis secciones
+y tres bases de datos relacionales. Es un modelo autocontenido: los datos
+de infraestructura, demanda y operación ferroviaria residen en las bases,
+y la lógica de cálculo en el paquete `modelo_cruces`.
 
-La metodología separa tres componentes:
+---
 
-1. **Modelo temporal mensual:** estima la demanda mensual total por servicio.
-2. **Módulos OD por servicio:** distribuyen la demanda mensual ya proyectada por pares origen-destino y tipo de pasajero/tarjeta cuando existen matrices disponibles.
-3. **Ingresos y subsidios:** calculan venta de pasajes y subsidios sólo para los servicios con regla tarifaria implementada. Biotren y Tren Araucanía incluyen subsidio normal y estudiante; Laja-Talcahuano sólo calcula venta de pasajes; Llanquihue-Puerto Montt no tiene módulo tarifario implementado en esta etapa.
+## 1. Problema y enfoque
 
-Los módulos OD no reemplazan la proyección temporal ni generan el total mensual de demanda; sólo distribuyen la afluencia mensual proyectada y calculan ingresos sobre esa distribución.
+Cada cruce a nivel es un punto donde un movimiento vial lateral, que cruza
+la vía férrea, comparte el derecho de paso con la Ruta 160 bajo control
+semafórico. El paso del tren obliga a cerrar la barrera (rutina de
+seguridad *Hurry Call*, HCALL), interrumpiendo el flujo. El proyecto
+integra la posición del tren (GPS) al controlador SCATS para anticipar el
+cierre y **pre-vaciar** la cola lateral antes de que baje la barrera.
 
-## 2. Insumos y fuentes de información
+La evaluación sigue el principio incremental del SNI y distingue tres
+situaciones:
 
-Los insumos principales son la afluencia diaria histórica consolidada, parámetros de oferta por servicio, calendario operacional 2027, feriados nacionales, matrices OD históricas procesadas de Biotren, mapeos de estación-línea, participaciones históricas por tipo de tarjeta, tarifas 2026 por tipo de pasajero y distancias entre estaciones. Los CSV procesados versionados permiten ejecutar el modelo sin depender de archivos Excel binarios.
-
-## 3. Modelo temporal mensual de proyección
-
-El cálculo se realiza por unidad operacional `u`, mes `m` y tipo de día `d`, distinguiendo lunes-viernes, sábado y domingo. Cada mes se calcula de manera independiente. El total anual corresponde a la suma de los doce meses, por lo que una modificación de oferta afecta el mes editado y el total anual por agregación.
-
-```text
-V0(u,m,d) = S0(u,m,d) × N_op(u,m,d) × (1 - tau(u,m,d))
-D0(u,m,d) = V0(u,m,d) × q(u,m,d) × F_nivel(s) × F_est(s,m)
-V1(u,m,d) = S1(u,m,d) × N_op(u,m,d) × (1 - tau(u,m,d) - c(u))
-D1(u,m,d) = D0(u,m,d) × (V1(u,m,d) / V0(u,m,d)) ^ epsilon(s)
-```
-
-Donde `S0` es la oferta base del escenario, `S1` es la oferta editable, `N_op` corresponde a días operacionales efectivos, `tau` es la tasa de supresión histórica, `q` es productividad media, `F_nivel` es el factor de nivel, `F_est` representa estacionalidad mensual, `epsilon` es elasticidad de demanda respecto de oferta y `c` es una contingencia adicional de supresión para análisis de sensibilidad.
-
-La elasticidad es menor que 1 para representar respuesta parcial de demanda ante cambios de oferta.
-
-## 4. Calendario operacional, oferta y feriados
-
-El calendario 2027 se transforma en días operacionales efectivos por servicio, mes y tipo de día. Las reglas implementadas son:
-
-- **Biotren, Tren Araucanía y Llanquihue-Puerto Montt:** feriados nacionales con oferta efectiva cero.
-- **Laja-Talcahuano:** feriados nacionales con oferta de fin de semana. Si el feriado cae lunes-viernes, se imputa como día operacional tipo domingo.
-
-Los feriados nacionales utilizados se encuentran en `data/feriados_chile_2027.csv`. El conteo operacional resultante se exporta en `data/calendario_operacional_2027.csv` y `outputs/calendario_operacional_2027.csv`.
-
-## 5. Tratamiento por servicio
-
-### 5.1 Biotren
-
-Biotren se modela separando L1 y L2 en el motor temporal. La oferta se edita por línea, mes y tipo de día. El escenario Biotren distingue entre frecuencia comercial y capacidad efectiva. La Línea 1 considera 47 servicios lunes-viernes durante el año. La Línea 2 mantiene 110 servicios de lunes a viernes durante 2027; desde mayo, tres servicios de punta mañana operan acoplados dentro de esa misma frecuencia. Por ello, estos servicios no se contabilizan como frecuencia adicional, sino como refuerzo de capacidad efectiva.
-
-El escenario Biotren 2027 corresponde a un escenario de gestión operacional-comercial sustentado en la oferta programada, la capacidad efectiva disponible, la integración con buses del transporte público, la recuperación de viajes registrados mediante plan de evasión y la validación mensual de ocupación. La afluencia total proyectada se distribuye posteriormente por línea, tipo de tarjeta y matriz OD para efectos de ingresos y subsidios.
-
-El escenario ajustado considera una validación operacional por ocupación promedio general. La referencia de pasajeros por servicio comercial se calcula con la frecuencia comercial vigente de L1 y L2; la capacidad equivalente por servicios acoplados se reporta sólo como diagnóstico técnico y no aumenta el denominador comercial. El ajuste mensual se distribuye según tendencia histórica, estacionalidad y oferta: enero y febrero se contrastan especialmente con el comportamiento reciente para evitar niveles estivales artificialmente bajos, mientras los demás meses reciben correcciones asociadas a brechas de ocupación. La proyección resultante para Biotren es **13.095.300 pasajeros** y no se recalibra en esta fase para forzar una ocupación promedio anual de 300 pasajeros por servicio comercial.
-
-#### Oferta operacional corregida
-
-La oferta Biotren 2027 distingue entre frecuencia comercial y capacidad efectiva. La Línea 2 mantiene 110 servicios de lunes a viernes durante todo el año. Desde mayo a diciembre, tres servicios de punta mañana operan acoplados dentro de esa frecuencia, por lo que se modelan como capacidad efectiva adicional y no como aumento de frecuencia.
-
-| Periodo | L1 L-V | L1 sábado | L1 domingo | L2 L-V | L2 sábado | L2 domingo | L2 acoplados L-V |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Enero-febrero | 47 | 8 | 0 | 110 | 14 | 14 | 0 |
-| Marzo-abril | 47 | 8 | 0 | 110 | 53 | 32 | 0 |
-| Mayo-diciembre | 47 | 8 | 0 | 110 | 53 | 32 | 3 |
-
-Los servicios acoplados no agregan frecuencia comercial ni aumento directo de demanda, pero aumentan la capacidad efectiva del sistema. Su rol metodológico es actuar como refuerzo de capacidad, alivio de saturación y soporte para absorber viajes en meses u horarios de alta utilización, especialmente en L2 y punta mañana. Por ello, el indicador ejecutivo de ocupación se calcula sobre servicios comerciales, mientras que el indicador de capacidad equivalente se utiliza como diagnóstico técnico.
-
-#### Integración con buses del transporte público
-
-La integración con buses del transporte público se incorpora como una medida de captura y alimentación de demanda. Su efecto principal se concentra en estación Concepción, por su rol de nodo estructurante de la red Biotren y su vinculación con los flujos urbanos de mayor escala. No obstante, desde el punto de vista operacional, la integración puede extenderse al resto de estaciones, generando mejoras de accesibilidad y continuidad de viaje en toda la red.
-
-Dado que en esta etapa no se dispone de una matriz observada de transbordos bus-tren por estación, la integración TP se utiliza como fundamento del escenario de gestión y no como una redistribución OD específica.
-
-#### Plan de evasión
-
-El plan de evasión se incorpora como una medida de recuperación de viajes registrados equivalente a 1% del cierre 2026 de Biotren. Este componente no se interpreta necesariamente como demanda física completamente nueva, sino como mejora en la captura de validaciones, reducción de viajes no registrados y fortalecimiento de la trazabilidad de la demanda efectiva. El efecto del plan de evasión fundamenta el crecimiento del escenario de gestión y no debe sumarse nuevamente si la afluencia anual ya fue calibrada al escenario consolidado.
-
-#### Ocupación mensual y bandas de funcionamiento
-
-El modelo distingue entre ocupación por servicio comercial y ocupación por capacidad equivalente. La primera corresponde al indicador principal de gestión y se calcula dividiendo la afluencia mensual por los servicios comerciales programados. La segunda incorpora el efecto de servicios acoplados como capacidad adicional y se utiliza sólo como diagnóstico técnico.
-
-Las bandas de funcionamiento mensual se calculan sobre `Pax/servicio comercial`: baja utilización bajo 270, operación estable desde 270 y menor a 300, alta utilización entre 300 y 330, y tensión operacional sobre 330. La clasificación mensual por bandas permite evaluar si el promedio anual cercano a 300 pasajeros por servicio comercial se distribuye de manera razonable durante el año. Las bandas son diagnósticas, ayudan a identificar meses con baja utilización, operación estable, alta utilización o tensión operacional, y no modifican por sí mismas la demanda proyectada; el resultado vigente no presenta meses en tensión operacional.
-
-#### Distribución posterior
-
-Una vez consolidada la demanda total de Biotren, el modelo distribuye la afluencia por línea, tipo de tarjeta y matriz OD. Sobre esa distribución se estiman ingresos por venta de pasajes, subsidio normal y subsidio estudiante. Estas capas distribuyen e interpretan la demanda ya proyectada, sin recalcular la afluencia total.
-
-
-El modelo distingue entre ocupación por servicio comercial y ocupación por capacidad equivalente. La primera corresponde al indicador principal de gestión y se calcula dividiendo la afluencia mensual por los servicios comerciales programados. La segunda incorpora el efecto de servicios acoplados como capacidad adicional y se utiliza sólo como diagnóstico técnico. La clasificación mensual por bandas permite identificar meses de baja utilización, operación estable, alta utilización o tensión operacional, sin modificar por sí misma la proyección de demanda.
-
-Las bandas de funcionamiento mensual de Biotren se calculan sobre `Pax/servicio comercial`: baja utilización bajo 270, operación estable desde 270 y menor a 300, alta utilización entre 300 y 330, y tensión operacional sobre 330. Los servicios acoplados L2 de mayo a diciembre no aumentan la frecuencia comercial; sólo elevan los servicios equivalentes de capacidad utilizados para el indicador técnico `Pax/capacidad equivalente`. Esta fase mantiene sin cambios la demanda anual Biotren 2027.
-
-### 5.2 Tren Araucanía
-
-Tren Araucanía se modela por componente de servicio:
-
-- Temuco - Victoria.
-- Temuco - Pitrufquén.
-- Claret.
-
-El escenario operacional vigente proyecta **840.777 pasajeros** para Tren Araucanía. La oferta Victoria-Temuco considera 11 servicios lunes-viernes durante todo 2027; adicionalmente, se refuerza mayo para mantener coherencia con el bloque marzo-mayo 2026 y se aplica un incremento marginal al resto de los meses para preservar el perfil mensual observado en 2025, especialmente la señal estival.
-
-Cada componente responde a su propia oferta y elasticidad. Temuco-Victoria tiene mayor respuesta marginal esperada que Pitrufquén y Claret. Claret se trata como componente escolar específico y se restringe a marzo-diciembre; enero y febrero no generan oferta ni demanda para este componente. La distribución mensual combina patrón histórico, calendario operacional, oferta mensual y tratamiento escolar. El control de marzo evita concentración artificial mediante suavizamiento técnico cuando la relación frente al promedio abril-diciembre supera el umbral definido.
-
-Tren Araucanía utiliza su propia MOD y reglas tarifarias/subsidio. No utiliza MOD Biotren, categorías L1/L2/L1-L2, distribución OD Biotren ni tipo de tarjeta Biotren.
-
-### 5.3 Llanquihue-Puerto Montt
-
-Llanquihue-Puerto Montt se modela con operación de lunes a viernes. En el escenario base no se consideran servicios planificados de fin de semana ni operación en feriados nacionales.
-
-El escenario operacional vigente proyecta **412.132 pasajeros** para Llanquihue-Puerto Montt. Marzo-diciembre se calibra con un promedio laboral referencial cercano a 1.500 pasajeros por día laboral; el promedio reportado para el bloque es aproximadamente **1.499,85 pasajeros por día laboral**. Esta referencia opera como ancla metodológica y no como restricción rígida idéntica para todos los meses. Enero y febrero consideran una reducción por menor efecto de novedad del servicio.
-
-El servicio mantiene independencia metodológica respecto de módulos OD Biotren, categorías L1/L2/L1-L2, tipo de tarjeta, ingresos Biotren y base referencial de subsidio Biotren.
-
-### 5.4 Laja-Talcahuano / Corto Laja
-
-Laja-Talcahuano se proyecta como servicio propio. La oferta base considera 8 servicios diarios durante el año, con excepción de sábados y domingos de enero y febrero, donde se consideran 10 servicios. Los feriados nacionales se modelan con oferta de fin de semana.
-
-El escenario operacional vigente proyecta **540.842 pasajeros** para Laja-Talcahuano. El servicio no recibe ajuste operacional específico nuevo dentro de la recalibración; su tratamiento sigue asociado a patrón histórico, oferta operacional, calendario y regla de feriados como operación de fin de semana.
-
-Laja-Talcahuano no utiliza MOD Biotren, categorías L1/L2/L1-L2, distribución OD Biotren, tipo de tarjeta Biotren, ingresos Biotren ni base referencial de subsidio Biotren.
-
-## 6. Escenario operacional 2027 vigente
-
-| Servicio | Proyección anual vigente 2027 |
-|---|---:|
-| Biotren | 13.095.299 |
-| Tren Araucanía | 840.777 |
-| Llanquihue-Puerto Montt | 412.132 |
-| Laja-Talcahuano / Corto Laja | 540.842 |
-| **Total sistema** | **14.857.758** |
-
-Estos valores corresponden a la base operacional vigente sobre la cual se ejecutan los módulos OD de Biotren, el backtesting diagnóstico y las bandas de incertidumbre.
-
-## 7. Biotren: distribución por línea OD basada en MOD
-
-La demanda total mensual de Biotren proviene del modelo temporal. La MOD histórica atribuible no genera ese total; sólo distribuye la demanda ya proyectada por línea OD.
-
-Cada par origen-destino se clasifica con el mapeo estación-línea versionado en `data/od_biotren/processed/mapeo_estacion_linea_biotren.csv`. Las categorías estándar proyectadas son:
-
-| Categoría OD | Interpretación |
+| Situación | Descripción |
 |---|---|
-| `L1` | Origen y destino atribuibles al corredor L1, incluyendo viajes desde/hacia estación común cuando el otro extremo es L1. |
-| `L2` | Origen y destino atribuibles al corredor L2, incluyendo viajes desde/hacia estación común cuando el otro extremo es L2. |
-| `L1-L2` | Viajes entre corredores o que implican combinación entre líneas. |
+| **Actual** | Operación vigente, sin intervención. |
+| **Base optimizada** (sin proyecto) | Reconfiguración semafórica: verde inmediato al movimiento lateral tras el HCALL. |
+| **Con proyecto** | Base optimizada + integración GPS–SCATS con pre-vaciado predictivo. |
 
-Concepción se marca como estación común/intercambio (`L1_L2`). El par `Concepción → Concepción` se mantiene como control `No clasificado`, porque corresponde a diagonal común-común y no debe asignarse artificialmente a L1, L2 ni L1-L2. El `No clasificado` se reporta como control diagnóstico histórico y no recibe proyección estándar.
+El beneficio atribuible al proyecto es el **incremento de la situación con
+proyecto sobre la base optimizada**, no sobre la situación actual.
+Atribuirle el beneficio de la reconfiguración —que pertenece a la base—
+sobreestimaría su rentabilidad.
 
-```text
-Participación_linea_m = Viajes_observados_linea_m / (Viajes_L1_m + Viajes_L2_m + Viajes_L1-L2_m)
-Proyección_linea_m = Proyección_Biotren_m × Participación_linea_m
+---
+
+## 2. Metodología de cálculo
+
+El cálculo encadena cuatro métodos. La sección 4 de la aplicación los
+documenta con sus ecuaciones; aquí se resumen.
+
+### 2.1 Simulación de colas segundo a segundo
+Modelo determinístico de colas en tiempo discreto (pasos de 1 s) basado en
+las curvas acumulativas de llegadas y salidas. La capacidad instantánea es
+`c(t) = g(t)·N/h` (verde efectivo × pistas / headway de saturación) y la
+cola evoluciona según `Q(t) = máx{0, Q(t−1) + q(t) − d(t)}`. La
+integración de la cola da el tiempo total de detención. La rutina HCALL, la
+reconfiguración y el pre-vaciado se representan en la dinámica
+segundo a segundo.
+
+### 2.2 Corrección por saturación (HCM)
+Cerca y por encima de la capacidad, la demora deja de ser proporcional al
+flujo. Por banda horaria se aplica la formulación del HCM: retardo
+uniforme de Webster (`d₁`) y retardo incremental de Akçelik (`d₂`). El
+grado de saturación `X = q/c` gobierna el régimen (estable, saturación
+próxima, sobre-saturación) y el método aplicable. Esta corrección acota la
+sobreestimación del modelo determinístico en sobre-saturación.
+
+### 2.3 Criterio de coherencia entre situaciones
+El beneficio de la **reconfiguración** se calcula como diferencia de
+esperas corregidas por el HCM entre la situación actual y la base, lo que
+distingue ambas por la capacidad efectiva resultante de la recuperación
+tras el cierre de barrera. El beneficio del **pre-vaciado** (GPS) es un
+efecto transitorio que la formulación estacionaria no representa: se toma
+de la simulación segundo a segundo y se acota por el factor de saturación
+del cruce. El número de pistas del movimiento de estudio se toma del
+antecedente de cada cruce. Esta lógica está centralizada en
+`datos.evaluar_cruce_corregido`, que usan por igual la simulación y la
+cartera, garantizando coherencia entre casos.
+
+### 2.4 Valoración social y evaluación económica
+El ahorro diario de detención se anualiza y se monetiza:
+`B = ΔW · D · O · VST · fₑ`, con `O` la ocupación media (que incorpora la
+composición de buses, 20 pax/bus) y `fₑ` el ponderador del tiempo de
+espera. Los beneficios se proyectan con el crecimiento de la demanda y se
+descuentan a la tasa social para obtener **VAN, TIR y B/C**, con
+reinversión de equipos e valor residual al cierre del horizonte.
+
+---
+
+## 3. El modelo de datos
+
+Tres bases SQLite separadas por dominio, unidas en tiempo de ejecución
+mediante `ATTACH`:
+
+- **`infraestructura.db`** — cruces y su antecedente (pistas totales y del
+  movimiento de estudio, presencia de semáforo, vía principal, evaluación,
+  coordenadas, distancia sobre la traza), programaciones semafóricas
+  (planes, fases, ciclos, verde lateral), parámetros de barrera y
+  estaciones de la línea.
+- **`demanda.db`** — flujos vehiculares por cruce y banda horaria
+  (campaña de aforo vigente), líneas de buses por cruce y hora, eventos de
+  barrera (HCALL por pasada) e itinerario vigente de la Línea 2
+  (servicios y horarios con distancia por estación).
+- **`escenarios.db`** — definición de escenarios y resultados persistidos.
+
+---
+
+## 4. Estructura del código
+
+```
+modelo-cruces-l2/
+├── app.py                      Portada de la aplicación
+├── datos.py                    Acceso a datos y evaluación coherente por cruce
+├── requirements.txt            Dependencias
+├── pages/                      Interfaz Streamlit (6 secciones)
+│   ├── 1_Cruces_estudiados.py        Antecedente, selección y justificación
+│   ├── 2_Supuestos_y_consideraciones.py  Parámetros y supuestos de cálculo
+│   ├── 3_Base_de_datos.py            Datos, diagrama de Marey, buses
+│   ├── 4_Metodologias.py            Metodología con ecuaciones y referencias
+│   ├── 5_Simulacion.py              Simulación de un cruce (3 situaciones)
+│   └── 6_Cartera_y_evaluacion.py    Cartera, fases e indicadores económicos
+├── modelo_cruces/              Paquete de lógica de cálculo
+│   ├── motor.py                Simulación de colas segundo a segundo
+│   ├── modelos.py              Estructuras de datos del dominio
+│   ├── catalogo.py             Catálogo de cruces y variantes
+│   ├── saturacion.py           Corrección Webster/Akçelik (HCM)
+│   ├── microsim.py             Microsimulación de eventos (sobre-saturación)
+│   ├── proyecto_incremental.py Marco incremental (actual/base/proyecto)
+│   ├── beneficios.py           Valoración social del tiempo
+│   ├── composicion.py          Ocupación efectiva con buses
+│   ├── externalidades.py       Combustible, emisiones, seguridad
+│   ├── horizonte.py            VAN/TIR y flujo temporal
+│   ├── cartera.py              Evaluación de la cartera (UF, indicadores)
+│   ├── tipologia.py            Clasificación de cruces por tipología
+│   ├── extrapolacion.py        Estimación de cruces sin programación
+│   ├── movimiento_principal.py Análisis del eje Ruta 160
+│   ├── sensibilidad.py         Análisis de sensibilidad (tornado)
+│   ├── incertidumbre.py        Monte Carlo y Sobol (carga diferida)
+│   ├── alternativas.py         Comparación de alternativas
+│   ├── desglose_modal.py       Valor del tiempo por modo
+│   ├── riesgos.py              Matriz de riesgos
+│   ├── validadores.py          Reglas de integridad de las bases
+│   ├── importador.py           Carga de datos a las bases
+│   └── config.py               Parámetros globales
+├── data/                       Bases SQLite, esquemas y semillas
+│   ├── infraestructura.db, demanda.db, escenarios.db
+│   ├── schema/                 Definiciones de esquema
+│   └── seeds/                  Datos de inicialización
+├── tests/                      Pruebas de validación e integridad
+├── plantillas/                 Plantillas CSV para carga de datos
+└── scripts/                    Utilidades de mantenimiento de datos
 ```
 
-El supuesto fijo 80/20 no corresponde al criterio metodológico vigente; fue reemplazado por participaciones mensuales calculadas con MOD histórica atribuible. La suma mensual `L1 + L2 + L1-L2` conserva el total mensual de Biotren, salvo diferencias numéricas de redondeo.
+### Componente central
+`datos.evaluar_cruce_corregido(con, nombre, campania_id, n_carriles=None)`
+es el punto único de evaluación de un cruce. Simula las variantes base y
+reconfiguración, aplica la corrección de saturación con el número de pistas
+real y devuelve las esperas de las tres situaciones y los ahorros de
+reconfiguración y de GPS. Tanto la sección de Simulación como la de Cartera
+lo invocan, de modo que un mismo cruce arroja idénticos resultados en
+ambas.
 
-## 8. Biotren: distribución OD por tipo de tarjeta
+---
 
-El módulo OD por tipo de tarjeta distribuye el total mensual vigente de Biotren entre tipos de tarjeta y pares origen-destino. La suma de todos los tipos de tarjeta conserva la demanda mensual total de Biotren.
+## 5. Resultados esperados
 
-| Tipo de tarjeta | Regla de ingreso tarifario preliminar |
-|---|---|
-| `monedero` | Usa tarifa normal/adulto. |
-| `media_superior` | Usa tarifa estudiante. |
-| `adulto_mayor` | Usa tarifa adulto mayor. |
-| `estudiante_basica` | Tarifa 0. |
-| `discapacitado` | Tarifa 0. |
-| `funcionario_normal` | Tarifa 0. |
-| `funcionario_especial` | Tarifa 0. |
-| `convenio_colectivo` | Tarifa 0. |
+Por cruce, el programa entrega la espera en las tres situaciones, el grado
+de saturación, el régimen y método aplicable, y los ahorros de
+reconfiguración y de GPS, valorizados. A nivel de cartera, descompone el
+impacto en las tres fases (reconfiguración → GPS), lo agrega por zona
+(San Pedro de la Paz / Coronel) y reporta VAN, TIR, B/C y período de
+recuperación, con cortes de beneficio en el tiempo.
 
-Los tipos con tarifa 0 conservan viajes proyectados en la distribución de afluencia, pero no generan ingreso tarifario directo.
+La reconfiguración concentra la mayor parte del beneficio total de la
+iniciativa, y el incremental del GPS —el atribuible al proyecto— constituye
+una fracción menor pero suficiente para sustentar la rentabilidad social.
+El beneficio se distribuye principalmente en los cruces de mayor
+saturación del corredor, que son los cuellos de botella donde la
+priorización rinde más.
 
-## 9. Ingresos por venta de pasajes
+---
 
-Los ingresos por venta de pasajes se calculan en memoria multiplicando la matriz de viajes por la tarifa directa aplicable a cada tipo de tarjeta:
+## 6. Documentos del proyecto
 
-```text
-Ingreso_ij,t,m = Viajes_ij,t,m × Tarifa_ij,t
+Junto al programa se elaboran los documentos formales de respaldo para la
+presentación al SNI y al Comité Técnico:
+
+- **Capítulo de Metodología** — formulación, métodos de cálculo y
+  referencias bibliográficas.
+- **Selección de cruces** — criterio y justificación técnica de los cruces
+  evaluados y excluidos.
+- **Metodología de cartera y tipología** — tratamiento diferenciado por
+  tipo de cruce y consolidación de la cartera.
+- **Reformulación del proyecto GPS–SCATS** — ejes de beneficio y
+  escalabilidad.
+- **Evaluación de cartera y viabilidad** — indicadores y análisis de
+  resultados.
+- **Análisis crítico del estado general** — vacíos y puntos a desarrollar.
+- **Propuesta de arquitectura** (`PROPUESTA_ARQUITECTURA.md`) — diseño del
+  modelo de datos y del código.
+
+---
+
+## 7. Ejecución
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-Los ingresos por venta de pasajes aplican sólo donde existe tarifa directa: `monedero`, `media_superior` y `adulto_mayor`. Los tipos `estudiante_basica`, `discapacitado`, `funcionario_normal`, `funcionario_especial` y `convenio_colectivo` usan tarifa 0. La tarifa estudiante pagada se mantiene para la venta de pasajes de `media_superior` y no se reemplaza por la tarifa estudiante BT sin subsidio.
+Requiere Python 3.11+. Las dependencias son `streamlit`, `numpy`,
+`pandas`, `openpyxl`, `pydeck` y `altair`. Las pruebas se ejecutan con
+`python tests/test_validacion.py` (consistencia del motor) y
+`python tests/test_validadores.py` (integridad de las bases).
 
-## 10. Subsidio e ingreso total Biotren
+---
 
-Venta de pasajes y subsidio son conceptos distintos. El cálculo se aplica sobre la proyección OD por tipo de tarjeta vigente de Biotren y no modifica la afluencia proyectada.
+## 8. Marco normativo y referencias
 
-### 10.1 Subsidio normal
-
-El grupo normal incluye todas las tarjetas excepto `media_superior` y `adulto_mayor`: `monedero`, `estudiante_basica`, `discapacitado`, `funcionario_normal`, `funcionario_especial` y `convenio_colectivo`.
-
-Monto_normal_base = Σ(MOD_normal_base_ij × tarifa_normal_ij), con diagonal en cero.
-
-Subsidio_normal = Monto_normal_base / (1 - tasa_descuento) - Monto_normal_base
-
-La tasa de descuento queda parametrizada en `data/tarifas_biotren/parametros_subsidio_biotren.csv` como `tasa_descuento_normal = 0,189`.
-
-### 10.2 Subsidio estudiante
-
-El grupo estudiante incluye sólo `media_superior`.
-
-Subsidio_estudiante = Σ(MOD_media_superior_ij × max(0, tarifa_estudiante_BT_sin_subsidio_ij - tarifa_estudiante_pagada_ij)), con diagonal en cero.
-
-La venta de pasajes de `media_superior` se calcula con la tarifa estudiante pagada de `data/od_biotren/processed/tarifas_2026_por_tipo_long.csv`. El subsidio estudiante cubre sólo la brecha tarifaria frente a `data/tarifas_biotren/tarifa_estudiante_bt_sin_subsidio_long.csv`; no suma la tarifa sin subsidio completa como subsidio. No se imputan automáticamente tarifas faltantes, las brechas de cobertura se reportan como advertencias y el cálculo no modifica la afluencia proyectada.
-
-### 10.3 Total
-
-Subsidio_total = Subsidio_normal + Subsidio_estudiante
-
-Ingreso_total_Biotren = Ingreso_venta + Subsidio_normal + Subsidio_estudiante
-
-`adulto_mayor` queda fuera de los grupos de subsidio indicados.
-
-## 10A. Subsidio e ingreso total Tren Araucanía
-
-La distribución OD de Tren Araucanía conserva la afluencia mensual proyectada y la reparte por tipo de pasajero y par OD según la MOD base. La venta de pasajes y la base de subsidio son conceptos distintos.
-
-### 10A.1 Venta de pasajes
-
-- `normal`: paga 100% de tarifa normal.
-- `delegacion`: paga 70% de tarifa normal.
-- `adulto_mayor`: paga tarifa adulto mayor.
-- `estudiante` y `claret`: pagan tarifa estudiante.
-- `discapacitado`, `estudiante_basica`, `funcionario` y `sindicato`: no generan venta directa.
-
-### 10A.2 Subsidio normal
-
-El grupo normal para subsidio incluye `normal`, `discapacitado`, `funcionario`, `sindicato` y `delegacion`. La base se calcula con tarifa normal completa, por lo que puede ser mayor que la venta normal directa.
-
-Subsidio_normal = Monto_normal_base / (1 - 0,127) - Monto_normal_base
-
-### 10A.3 Subsidio estudiante
-
-El grupo estudiante para subsidio incluye `estudiante`, `claret` y `estudiante_basica`. El subsidio se calcula con la diferencia entre la matriz estudiante sin subsidio y la matriz estudiante con subsidio. Esta base es independiente de la venta directa; por lo tanto, `estudiante_basica` puede no generar venta de pasajes, pero sí participa en la base de subsidio estudiantil.
-
-Subsidio_estudiante = Base_estudiante_sin_subsidio - Base_estudiante_con_subsidio
-
-`adulto_mayor` no integra subsidio normal ni estudiante.
-
-## 11. Backtesting histórico diagnóstico
-
-El modelo incluye un módulo de backtesting histórico para contrastar periodos observados conocidos contra estimaciones producidas por el mismo motor mensual-elástico utilizado en el escenario vigente. El backtesting es retrospectivo diagnóstico no holdout: audita consistencia, escala y perfil mensual, pero no reemplaza ni recalibra la proyección operacional 2027.
-
-El backtesting entrega métricas por servicio y para el total sistema: MAE, RMSE, MAPE, WMAPE y sesgo. WMAPE es la referencia agregada principal porque pondera por volumen observado.
-
-## 12. Bandas de incertidumbre diagnósticas
-
-Las bandas de incertidumbre derivan de métricas históricas de error del backtesting, especialmente WMAPE. No son intervalos estadísticos formales ni intervalos de confianza. El ajuste por sesgo es una sensibilidad diagnóstica.
-
-Las bandas se calculan sobre la proyección base 2027 vigente:
-
-| Servicio | Base 2027 usada por incertidumbre |
-|---|---:|
-| Biotren | 13.095.299 |
-| Tren Araucanía | 840.777 |
-| Llanquihue-Puerto Montt | 412.132 |
-| Laja-Talcahuano | 540.842 |
-
-## 13. Validaciones, limitaciones y próximos pasos
-
-El modelo genera controles de consistencia mensual/anual, feriados por servicio, sensibilidad de oferta, conservación de totales OD de Biotren, suma de participaciones MOD por línea, consistencia por tipo de tarjeta, ingresos sólo para tipos con tarifa aplicable, subsidio normal y estudiante con controles de cobertura, backtesting diagnóstico y bandas de incertidumbre sin valores negativos.
-
-La sección **Validación histórica** de Streamlit muestra los resultados agregados, el detalle observado vs estimado y las advertencias. El proceso se ejecuta en memoria: no genera archivos binarios, no modifica outputs masivos y no altera `data/od_biotren/processed/`.
-
-## Escenario 2027 recalibrado
-
-El escenario 2027 incorpora una recalibración operacional trazable sin modificar los datos históricos procesados. Biotren aplica una baja progresiva del total mensual, una afectación operacional adicional en Línea 2 durante fines de semana de enero-febrero y un ajuste residual distribuido en meses laborales, de modo que la demanda anual se ubica en el entorno de 12,7 millones de pasajeros.
-
-Tren Araucanía se calcula por componente de servicio. Victoria-Temuco opera con 11 servicios de lunes a viernes durante todo 2027, Temuco-Pitrufquén se mantiene separado y Claret conserva su tratamiento escolar específico de marzo a diciembre. El perfil mensual incluye diagnóstico y suavizamiento de marzo cuando corresponde para evitar concentración artificial; posteriormente se refuerza mayo por coherencia con el bloque marzo-mayo 2026 y se aplica un ajuste marginal al resto de los meses, preservando el comportamiento mensual observado en 2025.
-
-Llanquihue-Puerto Montt se calibra con un promedio de día laboral cercano a 1.500 pasajeros entre marzo y diciembre, permitiendo variación mensual por estacionalidad y calendario. Enero y febrero incorporan una reducción por menor efecto novedad del servicio y no se fuerzan al promedio laboral de meses ancla.
-
-Laja-Talcahuano no recibe una modificación específica nueva en la recalibración y mantiene su regla operacional de feriados como fin de semana. Las bandas de incertidumbre se calculan sobre la nueva proyección base 2027, conservando las métricas históricas de WMAPE y sesgo del backtesting.
-
-## Referencias históricas y cierre 2026 para visualización
-
-Los archivos normalizados ubicados en `data/referencias_cierre_2026/` se utilizan como referencia visual para los diagramas de evolución histórica, cierre 2026 y proyección 2027. El tratamiento metodológico distingue explícitamente tres categorías: **Histórico observado**, **Cierre 2026 estimado** y **Proyección 2027 modelo**.
-
-El cierre 2026 estimado no recalibra el motor mensual-elástico, no modifica el escenario operacional 2027 vigente y no altera los insumos procesados de `data/od_biotren/processed/`. Su función es mejorar la lectura histórica, la trazabilidad visual del diagrama de proyección y la comparación entre la trayectoria observada, el cierre anual estimado y el resultado operacional vigente del modelo.
-
-### Redistribución mensual Biotren 2027 por participación anual
-
-La proyección anual Biotren se mantiene en 13.095.299 pasajeros. La revisión mensual usa la participación de cada mes sobre el total anual, calculada como afluencia mensual dividida por afluencia anual, y compara el escenario 2027 contra 2024 observado, 2025 observado y cierre 2026 estimado disponible en las referencias versionadas.
-
-La participación objetivo mensual combina el patrón reciente ponderado por cercanía temporal (2024: 25%, 2025: 35%, cierre 2026: 40%) con la participación mensual de los servicios comerciales 2027. Esta combinación conserva la estacionalidad histórica, incorpora la oferta mensual y evita meses artificialmente bajos o altos frente al comportamiento reciente.
-
-La redistribución se aplica sólo al total mensual Biotren. Las capas por línea, OD, tipo de tarjeta, venta de pasajes, subsidio normal, subsidio estudiante, subsidio total e ingreso total Biotren se calculan después de esa afluencia mensual redistribuida, conservando los totales mensuales de entrada.
+La evaluación se rige por la metodología de **Vialidad Urbana e
+Intermedia** del SNI y los precios sociales del Ministerio de Desarrollo
+Social y Familia. La formulación de demora se apoya en el *Highway Capacity
+Manual* (TRB), Webster (1958) y Akçelik (1981, 1988); la priorización
+semafórica, en la documentación del SCATS Priority Engine de Transport for
+NSW. El detalle bibliográfico se encuentra en la sección de Metodología de
+la aplicación y en el Capítulo de Metodología.
